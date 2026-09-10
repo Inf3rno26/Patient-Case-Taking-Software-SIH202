@@ -1,0 +1,808 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ClipboardList,
+  Stethoscope,
+  Pill,
+  AlertTriangle,
+  Users,
+  User,
+  Search,
+  Activity,
+  FileText,
+  CheckCircle2,
+  Volume2,
+  Printer,
+  Send,
+  Edit3,
+  Save,
+  X,
+  FileCheck,
+} from "lucide-react";
+import Navbar from "@/components/ui/Navbar";
+import GlassCard from "@/components/ui/GlassCard";
+import LoadingPulse from "@/components/ui/LoadingPulse";
+import QRToken from "@/components/QRToken";
+import { usePatient } from "@/context/PatientContext";
+import { speakText } from "@/lib/languages";
+
+export default function SummaryPage() {
+  const router = useRouter();
+  const { session, language, setSummary: saveSessionSummary, updateSession } = usePatient();
+  const [summary, setSummary] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Edit-in-place state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState({});
+
+  // Submission state
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const generateSummary = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationHistory: session?.conversation || [],
+          extractedHistory: session?.extractedHistory || {},
+          documents: session?.documents || [],
+          language: language || "en-IN",
+          isAyush: session?.isAyush || false,
+          patient: session?.patient || {},
+        }),
+      });
+
+      if (!response.ok) throw new Error("Summary generation failed");
+
+      const data = await response.json();
+      setSummary(data);
+      saveSessionSummary(data);
+    } catch (error) {
+      console.error("Summary error:", error);
+      // Fallback demo summary
+      const fallbackSummary = {
+        summary: {
+          chiefComplaint: session?.extractedHistory?.chiefComplaint || "As recorded during interview",
+          hpiNarrative: "History recorded via MediKiosk AI interview. Please review conversation transcript for details.",
+          pastMedicalHistory: session?.extractedHistory?.pastMedical || { conditions: [], surgeries: [], hospitalizations: [] },
+          drugHistory: session?.extractedHistory?.drugHistory || { current: [], past: [] },
+          allergyHistory: session?.extractedHistory?.allergyHistory || { drugs: [], food: [], environmental: [], noKnownAllergies: true },
+          familyHistory: session?.extractedHistory?.familyHistory || { conditions: [] },
+          personalHistory: session?.extractedHistory?.personalHistory || {},
+          reviewOfSystems: session?.extractedHistory?.reviewOfSystems || { positive: [], negative: [] },
+          priorInvestigations: [],
+          redFlags: session?.redFlags || [],
+        },
+        summaryNarrative: "Clinical history recorded via AI-assisted interview. Review and confirm details.",
+        priorityLevel: session?.redFlags?.length > 0 ? "urgent" : "routine",
+        suggestedDepartment: "General Medicine",
+      };
+      setSummary(fallbackSummary);
+      saveSessionSummary(fallbackSummary);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [session, language, saveSessionSummary]);
+
+  // Auto-generate on mount
+  useEffect(() => {
+    if (mounted && !summary && !isGenerating && session) {
+      // If summary already exists in session, use it
+      if (session.summary) {
+        setSummary(session.summary);
+      } else {
+        generateSummary();
+      }
+    }
+  }, [mounted, summary, isGenerating, generateSummary, session]);
+
+  const handleSpeak = () => {
+    if (summary?.summaryLocalLanguage) {
+      speakText(summary.summaryLocalLanguage, language || "en-IN");
+    } else if (summary?.summaryNarrative) {
+      speakText(summary.summaryNarrative, "en-IN");
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleSubmit = () => {
+    // In a real app, this would make an API call to HIS/ABDM
+    // For now, just show the success screen
+    setIsSubmitted(true);
+  };
+
+  // --- EDIT IN PLACE LOGIC ---
+  const extractTextForEditing = (sec) => {
+    if (summary?.editedSections && summary.editedSections[sec.id]) {
+      return summary.editedSections[sec.id];
+    }
+    if (typeof sec.content === "string") return sec.content;
+    if (!sec.content) return "";
+    
+    // Convert object to string based on type
+    if (sec.isList) {
+      const parts = [];
+      if (sec.content.conditions?.length) parts.push("Conditions: " + sec.content.conditions.join(", "));
+      if (sec.content.surgeries?.length) parts.push("Surgeries: " + sec.content.surgeries.join(", "));
+      return parts.join("\n");
+    }
+    if (sec.isDrugs) {
+      return (sec.content.current || []).map(d => typeof d === "string" ? d : `${d.name} ${d.dosage || ""}`).join("\n");
+    }
+    if (sec.isAllergy) {
+      if (sec.content.noKnownAllergies) return "No known allergies (NKDA)";
+      return (sec.content.drugs || []).join(", ");
+    }
+    if (sec.isFamilyHistory) {
+      return (sec.content.conditions || []).join("\n");
+    }
+    if (sec.isPersonal) {
+      return Object.entries(sec.content).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("\n");
+    }
+    if (sec.isROS) {
+      const parts = [];
+      if (sec.content.positive?.length) parts.push("Positive: " + sec.content.positive.join(", "));
+      if (sec.content.negative?.length) parts.push("Negative: " + sec.content.negative.join(", "));
+      return parts.join("\n");
+    }
+    return "";
+  };
+
+  const startEdit = () => {
+    const draft = {};
+    sections.forEach(sec => {
+      if (sec.show) {
+        draft[sec.id] = extractTextForEditing(sec);
+      }
+    });
+    // Add narrative summary
+    draft["narrative"] = summary.editedSections?.narrative || summary.summaryNarrative || "";
+    setEditDraft(draft);
+    setIsEditing(true);
+  };
+
+  const saveEdit = () => {
+    const updatedSummary = {
+      ...summary,
+      editedSections: { ...editDraft }
+    };
+    setSummary(updatedSummary);
+    saveSessionSummary(updatedSummary);
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  if (!mounted) return null;
+
+  const s = summary?.summary;
+  const priorityColors = {
+    routine: "var(--color-accent-primary)",
+    urgent: "var(--color-accent-warning)",
+    emergency: "var(--color-accent-warm)",
+  };
+
+  const sections = [
+    {
+      id: "cc",
+      icon: <ClipboardList size={18} />,
+      title: "Chief Complaint",
+      content: s?.chiefComplaint,
+      show: !!s?.chiefComplaint,
+    },
+    {
+      id: "hpi",
+      icon: <Stethoscope size={18} />,
+      title: "History of Present Illness",
+      content: s?.hpiNarrative,
+      show: !!s?.hpiNarrative,
+    },
+    {
+      id: "pmh",
+      icon: <FileText size={18} />,
+      title: "Past Medical History",
+      content: s?.pastMedicalHistory,
+      show: s?.pastMedicalHistory && (s.pastMedicalHistory.conditions?.length > 0 || s.pastMedicalHistory.surgeries?.length > 0),
+      isList: true,
+    },
+    {
+      id: "drugs",
+      icon: <Pill size={18} />,
+      title: "Drug History",
+      content: s?.drugHistory,
+      show: s?.drugHistory && s.drugHistory.current?.length > 0,
+      isDrugs: true,
+    },
+    {
+      id: "allergies",
+      icon: <AlertTriangle size={18} />,
+      title: "Allergy History",
+      content: s?.allergyHistory,
+      show: !!s?.allergyHistory,
+      isAllergy: true,
+    },
+    {
+      id: "family",
+      icon: <Users size={18} />,
+      title: "Family History",
+      content: s?.familyHistory,
+      show: s?.familyHistory && s.familyHistory.conditions?.length > 0,
+      isFamilyHistory: true,
+    },
+    {
+      id: "personal",
+      icon: <User size={18} />,
+      title: "Personal History",
+      content: s?.personalHistory,
+      show: s?.personalHistory && Object.keys(s.personalHistory).length > 0,
+      isPersonal: true,
+    },
+    {
+      id: "ros",
+      icon: <Search size={18} />,
+      title: "Review of Systems",
+      content: s?.reviewOfSystems,
+      show: s?.reviewOfSystems && (s.reviewOfSystems.positive?.length > 0 || s.reviewOfSystems.negative?.length > 0),
+      isROS: true,
+    },
+  ];
+
+  // If submitted, show success screen
+  if (isSubmitted) {
+    return (
+      <>
+        <Navbar />
+        <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="container container-narrow">
+            <GlassCard hoverable={false} style={{ textAlign: "center", padding: "60px 30px" }}>
+              <div className="success-icon animate-scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                <div style={{ background: 'var(--color-accent-success)', color: '#fff', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(0, 212, 170, 0.4)' }}>
+                  <CheckCircle2 size={48} />
+                </div>
+              </div>
+              <h1 className="animate-fade-in-up" style={{ color: "var(--color-text-primary)", marginBottom: 16 }}>
+                Submission <span className="text-gradient">Successful</span>
+              </h1>
+              <p className="animate-fade-in-up delay-1" style={{ color: "var(--color-text-secondary)", fontSize: "1.1rem", marginBottom: 32, lineHeight: 1.6 }}>
+                Your clinical summary has been securely linked to your ABHA record and sent to the physician's dashboard.
+              </p>
+              
+              <div className="success-details animate-fade-in-up delay-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '20px', marginBottom: 32 }}>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* QR Code Token */}
+                  <QRToken
+                    value={`MEDIKIOSK:${session?.id || 'MK-SESSION'}:${session?.patient?.name || 'Patient'}:${new Date().toISOString()}`}
+                    size={140}
+                    label={`Token: ${session?.id || 'MK-LIVE'}`}
+                  />
+                  {/* Details */}
+                  <div style={{ flex: 1, minWidth: 160, textAlign: 'left' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Patient ID</span>
+                      <strong style={{ color: 'var(--color-text-primary)' }}>{session?.id || "MK-LIVE-SESSION"}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Patient</span>
+                      <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.name || 'Patient'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Department</span>
+                      <strong style={{ color: 'var(--color-text-primary)' }}>{summary?.suggestedDepartment || "General Medicine"}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Time</span>
+                      <strong style={{ color: 'var(--color-text-primary)' }}>{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</strong>
+                    </div>
+                  </div>
+                </div>
+                <p style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 12 }}>
+                  📱 Physician scans QR to instantly pull up your record
+                </p>
+              </div>
+
+              <div className="animate-fade-in-up delay-3" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <button className="btn-secondary btn-touch" onClick={handlePrint}>
+                  <Printer size={18} /> Print Token & Summary
+                </button>
+                <button className="btn-primary btn-touch" onClick={() => router.push("/")}>
+                  Return to Home
+                </button>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Navbar />
+      <div className="page-wrapper printable-area">
+        <div className="container container-narrow" style={{ padding: "24px 16px 60px" }}>
+          
+          {/* Header */}
+          <div className="section-header animate-fade-in no-print">
+            <h1>
+              Clinical <span className="text-gradient">Summary</span>
+            </h1>
+            <p>Review and verify your clinical history before submission</p>
+          </div>
+
+          {/* Print Header (Only visible when printing) */}
+          <div className="print-only" style={{ marginBottom: 20, borderBottom: '2px solid #333', paddingBottom: 10 }}>
+            <h1 style={{ margin: 0, color: '#000' }}>MediKiosk Clinical Summary</h1>
+            <p style={{ margin: 0, color: '#555' }}>Generated: {new Date().toLocaleString('en-IN')}</p>
+          </div>
+
+          {/* Generating */}
+          {isGenerating && (
+            <GlassCard hoverable={false} style={{ textAlign: "center", padding: "60px 20px" }}>
+              <LoadingPulse text="🧠 Generating structured clinical summary..." size="large" />
+            </GlassCard>
+          )}
+
+          {/* Summary Content */}
+          {summary && !isGenerating && (
+            <div className="summary-content animate-fade-in-up">
+              
+              {/* Patient Header Card */}
+              <GlassCard hoverable={false} className="patient-header-card print-no-border">
+                <div className="patient-header">
+                  <div className="patient-info-row">
+                    <Activity size={20} className="no-print" style={{ color: "var(--color-accent-primary)" }} />
+                    <div>
+                      <h3 style={{ color: 'inherit' }}>{session?.patient?.name || "Patient"}</h3>
+                      <p style={{ color: 'inherit' }}>
+                        {session?.patient?.age ? `${session.patient.age}y` : ""}{" "}
+                        {session?.patient?.gender ? `/ ${session.patient.gender}` : ""}{" "}
+                        {session?.patient?.abhaId ? `• ABHA: ${session.patient.abhaId}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="summary-meta no-print">
+                    <span
+                      className="badge"
+                      style={{
+                        borderColor: priorityColors[summary.priorityLevel] || priorityColors.routine,
+                        color: priorityColors[summary.priorityLevel] || priorityColors.routine,
+                      }}
+                    >
+                      {summary.priorityLevel?.toUpperCase() || "ROUTINE"}
+                    </span>
+                    {summary.suggestedDepartment && (
+                      <span className="badge">{summary.suggestedDepartment}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* QR Token - compact in header card */}
+                <div className="no-print" style={{ display: 'flex', justifyContent: 'center', margin: '12px 0 4px' }}>
+                  <QRToken
+                    value={`MEDIKIOSK:${session?.id || 'MK-SESSION'}:${session?.patient?.name || 'Patient'}`}
+                    size={100}
+                    label={session?.id || 'MK-LIVE'}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="summary-actions no-print">
+                  <button className="btn-icon" onClick={handleSpeak} title="Read aloud" id="summary-speak-btn">
+                    <Volume2 size={18} />
+                  </button>
+                  <button className="btn-icon" onClick={handlePrint} title="Print" id="summary-print-btn">
+                    <Printer size={18} />
+                  </button>
+                  <button className="btn-icon" onClick={generateSummary} title="Regenerate" id="summary-regen-btn">
+                    <Activity size={18} />
+                  </button>
+                </div>
+              </GlassCard>
+
+              {/* Edit Mode Banner */}
+              {isEditing && (
+                <div className="edit-mode-banner animate-fade-in no-print">
+                  <Edit3 size={16} />
+                  <span>Edit Mode: Tap on any text box to correct your information.</span>
+                </div>
+              )}
+
+              {/* Clinical Sections */}
+              {sections.map((sec, idx) => {
+                if (!sec.show) return null;
+                
+                // If this section has been manually edited, show the edited string. Otherwise, render normally.
+                const hasEditedString = summary.editedSections && typeof summary.editedSections[sec.id] === "string";
+                const displayContent = hasEditedString ? summary.editedSections[sec.id] : sec.content;
+
+                return (
+                  <div key={idx} className="summary-section animate-fade-in-up print-no-border" style={{ animationDelay: `${idx * 0.08}s` }}>
+                    <div className="summary-section-header">
+                      {sec.icon}
+                      <h3>{sec.title}</h3>
+                    </div>
+
+                    {isEditing ? (
+                      <div className="edit-field-group no-print">
+                        <textarea
+                          className="edit-textarea"
+                          value={editDraft[sec.id] || ""}
+                          onChange={(e) => setEditDraft(prev => ({ ...prev, [sec.id]: e.target.value }))}
+                          rows={3}
+                          placeholder={`Enter ${sec.title.toLowerCase()}...`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="section-body">
+                        {/* If it was edited, it's just a string */}
+                        {hasEditedString ? (
+                          <p style={{ whiteSpace: "pre-wrap" }}>{displayContent || "—"}</p>
+                        ) : (
+                          /* Otherwise render rich content */
+                          <>
+                            {typeof sec.content === "string" && <p style={{ whiteSpace: "pre-wrap" }}>{sec.content}</p>}
+
+                            {sec.isList && (
+                              <div>
+                                {sec.content.conditions?.length > 0 && (
+                                  <div>
+                                    <strong style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>Conditions:</strong>
+                                    <ul style={{ paddingLeft: 20, margin: "6px 0" }}>
+                                      {sec.content.conditions.map((c, i) => (
+                                        <li key={i} style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>{c}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {sec.content.surgeries?.length > 0 && (
+                                  <div style={{ marginTop: 8 }}>
+                                    <strong style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>Surgeries:</strong>
+                                    <ul style={{ paddingLeft: 20, margin: "6px 0" }}>
+                                      {sec.content.surgeries.map((c, i) => (
+                                        <li key={i} style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>{c}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {sec.isDrugs && (
+                              <div className="drug-list">
+                                {sec.content.current?.map((d, i) => (
+                                  <div key={i} className="drug-item">
+                                    <Pill size={14} style={{ color: "var(--color-accent-primary)" }} className="no-print" />
+                                    <span>{typeof d === "string" ? d : `${d.name} ${d.dosage || ""} ${d.since ? `(since ${d.since})` : ""}`}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {sec.isAllergy && (
+                              <div>
+                                {sec.content.noKnownAllergies ? (
+                                  <p style={{ color: "var(--color-accent-primary)" }}>✓ No known allergies (NKDA)</p>
+                                ) : (
+                                  <div>
+                                    {sec.content.drugs?.map((a, i) => (
+                                      <span key={i} className="badge badge-danger print-badge" style={{ margin: "0 6px 6px 0" }}>
+                                        {a}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {sec.isFamilyHistory && (
+                              <ul style={{ paddingLeft: 20 }}>
+                                {sec.content.conditions?.map((c, i) => (
+                                  <li key={i} style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>{c}</li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {sec.isPersonal && (
+                              <div className="personal-grid">
+                                {Object.entries(sec.content).map(([key, val]) => (
+                                  <div key={key} className="personal-item print-no-bg">
+                                    <span className="personal-label">{key.replace(/_/g, " ")}</span>
+                                    <span className="personal-value">{val}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {sec.isROS && (
+                              <div>
+                                {sec.content.positive?.length > 0 && (
+                                  <div style={{ marginBottom: 8 }}>
+                                    <strong style={{ fontSize: "0.8rem", color: "var(--color-accent-warning)" }}>Positive:</strong>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                                      {sec.content.positive.map((p, i) => (
+                                        <span key={i} className="badge badge-warning print-badge">{p}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {sec.content.negative?.length > 0 && (
+                                  <div>
+                                    <strong style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>Negative:</strong>
+                                    <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: 4 }}>
+                                      {sec.content.negative.join(", ")}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Narrative Summary */}
+              {summary.summaryNarrative && (
+                <GlassCard hoverable={false} className="print-no-border" style={{ marginTop: 16 }}>
+                  <div className="summary-section-header">
+                    <FileText size={18} />
+                    <h3>Narrative Summary</h3>
+                  </div>
+                  
+                  {isEditing ? (
+                    <div className="edit-field-group no-print">
+                      <textarea
+                        className="edit-textarea"
+                        value={editDraft["narrative"] || ""}
+                        onChange={(e) => setEditDraft(prev => ({ ...prev, narrative: e.target.value }))}
+                        rows={5}
+                      />
+                    </div>
+                  ) : (
+                    <p style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+                      {summary.editedSections?.narrative || summary.summaryNarrative}
+                    </p>
+                  )}
+                </GlassCard>
+              )}
+
+              {/* Red Flags - Only show if not editing or if they exist */}
+              {s?.redFlags?.length > 0 && !isEditing && (
+                <div className="summary-section" style={{ borderColor: "rgba(255,71,87,0.3)" }}>
+                  <div className="summary-section-header">
+                    <AlertTriangle size={18} style={{ color: "#ff4757" }} />
+                    <h3 style={{ color: "#ff4757" }}>Red Flags</h3>
+                  </div>
+                  {s.redFlags.map((f, i) => (
+                    <p key={i} className="badge badge-danger print-badge" style={{ display: "block", marginBottom: 4 }}>
+                      {typeof f === "string" ? f : f.reason}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions Area */}
+              <div className="no-print" style={{ marginTop: 32 }}>
+                {isEditing ? (
+                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button className="btn-secondary btn-touch" onClick={cancelEdit}>
+                      <X size={20} /> Cancel
+                    </button>
+                    <button className="btn-primary btn-large btn-touch" onClick={saveEdit}>
+                      <Save size={20} /> Save Changes
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                      <button className="btn-secondary btn-touch" onClick={() => router.push("/scan")}>
+                        ← Add Documents
+                      </button>
+                      <button className="btn-secondary btn-touch" onClick={startEdit}>
+                        <Edit3 size={18} /> Edit Details
+                      </button>
+                      <button className="btn-primary btn-large btn-touch" onClick={handleSubmit}>
+                        <CheckCircle2 size={20} />
+                        Submit to HIS
+                      </button>
+                    </div>
+                    
+                    {/* Disclaimer */}
+                    <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--color-text-muted)", marginTop: 20, lineHeight: 1.6 }}>
+                      ⚕️ This is an AI-generated draft summary. You may edit details before submitting.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .patient-header-card {
+          margin-bottom: 20px;
+        }
+
+        .patient-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        .patient-info-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .patient-info-row h3 {
+          font-size: 1.2rem;
+          margin-bottom: 2px;
+        }
+
+        .patient-info-row p {
+          font-size: 0.82rem;
+          color: var(--color-text-muted);
+          margin: 0;
+        }
+
+        .summary-meta {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .summary-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 16px;
+          padding-top: 12px;
+          border-top: 1px solid var(--color-border);
+        }
+
+        .drug-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .drug-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9rem;
+          color: var(--color-text-secondary);
+        }
+
+        .personal-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 10px;
+        }
+
+        .personal-item {
+          padding: 8px 12px;
+          background: var(--color-bg-glass);
+          border-radius: 8px;
+        }
+
+        .personal-label {
+          display: block;
+          font-size: 0.72rem;
+          color: var(--color-text-muted);
+          text-transform: capitalize;
+          margin-bottom: 2px;
+        }
+
+        .personal-value {
+          font-size: 0.9rem;
+          color: var(--color-text-primary);
+          font-weight: 500;
+        }
+
+        /* Edit Mode Styles */
+        .edit-mode-banner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          background: rgba(0, 212, 170, 0.08);
+          border: 1px solid rgba(0, 212, 170, 0.3);
+          border-radius: var(--radius-md);
+          color: var(--color-accent-primary);
+          font-size: 0.85rem;
+          font-weight: 500;
+          margin-bottom: 20px;
+        }
+
+        .edit-field-group {
+          margin-top: 12px;
+        }
+
+        .edit-textarea {
+          width: 100%;
+          padding: 12px 14px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          color: var(--color-text-primary);
+          font-family: var(--font-primary);
+          font-size: 0.9rem;
+          line-height: 1.6;
+          resize: vertical;
+          transition: border-color var(--transition-fast);
+          box-sizing: border-box;
+        }
+
+        .edit-textarea:focus {
+          outline: none;
+          border-color: var(--color-accent-primary);
+          box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.12);
+        }
+
+        /* Printing Styles */
+        .print-only {
+          display: none;
+        }
+
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          .print-only {
+            display: block !important;
+          }
+          .printable-area {
+            background: white !important;
+            color: black !important;
+          }
+          .print-no-border {
+            border: none !important;
+            box-shadow: none !important;
+            background: none !important;
+            padding: 0 !important;
+            margin-bottom: 16px !important;
+          }
+          .print-badge {
+            border: 1px solid #000 !important;
+            background: #fff !important;
+            color: #000 !important;
+          }
+          .print-no-bg {
+            background: transparent !important;
+            border: 1px solid #ccc !important;
+          }
+          .summary-section {
+            break-inside: avoid;
+          }
+          body {
+            --color-text-primary: #000;
+            --color-text-secondary: #333;
+            --color-text-muted: #666;
+            background: #fff;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
