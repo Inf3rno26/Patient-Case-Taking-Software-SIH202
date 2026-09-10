@@ -104,16 +104,41 @@ export default function MedicalTimeline({ documents = [] }) {
 
               {doc.labValues?.length > 0 && (
                 <div className="timeline-section">
-                  <strong>Lab Values:</strong>
+                  <strong>Diagnostic Lab Parameters:</strong>
                   <div className="lab-values-grid">
                     {doc.labValues.map((v, i) => (
                       <div key={i} className={`lab-value ${v.isAbnormal ? "abnormal" : ""}`}>
-                        <span className="lab-name">{v.test}</span>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <span className="lab-name">{v.test}</span>
+                          {v.isAbnormal && (
+                            <span className="badge badge-danger" style={{ fontSize: "0.62rem", padding: "1px 5px", flexShrink: 0 }}>
+                              Abnormal
+                            </span>
+                          )}
+                        </div>
                         <span className="lab-result">{v.value} {v.unit}</span>
                         {v.referenceRange && <span className="lab-ref">Ref: {v.referenceRange}</span>}
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {doc.keyFindings?.length > 0 && (
+                <div className="timeline-section">
+                  <strong>Key Clinical Findings:</strong>
+                  <ul className="timeline-findings">
+                    {doc.keyFindings.map((f, i) => (
+                      <li key={i}>{typeof f === "string" ? f : f.text || JSON.stringify(f)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {doc.followUp && (
+                <div className="timeline-section timeline-followup">
+                  <strong>Recommended Follow-up / Guidance:</strong>
+                  <p>{doc.followUp}</p>
                 </div>
               )}
             </div>

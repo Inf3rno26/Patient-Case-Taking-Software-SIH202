@@ -20,17 +20,19 @@ import {
   Save,
   X,
   FileCheck,
+  FileCode,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
 import LoadingPulse from "@/components/ui/LoadingPulse";
 import QRToken from "@/components/QRToken";
+import RiskScoreCard from "@/components/RiskScoreCard";
 import { usePatient } from "@/context/PatientContext";
 import { speakText } from "@/lib/languages";
 
 export default function SummaryPage() {
   const router = useRouter();
-  const { session, language, setSummary: saveSessionSummary, updateSession } = usePatient();
+  const { session, language, setSummary: saveSessionSummary, updateSession, clearSession } = usePatient();
   const [summary, setSummary] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -39,8 +41,35 @@ export default function SummaryPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState({});
 
-  // Submission state
+  // Submission & Security Wipe state
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [wipeCountdown, setWipeCountdown] = useState(60);
+  const [isWiped, setIsWiped] = useState(false);
+
+  // Auto wipe timer on submission
+  useEffect(() => {
+    let timer;
+    if (isSubmitted && !isWiped) {
+      timer = setInterval(() => {
+        setWipeCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            clearSession();
+            setIsWiped(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isSubmitted, isWiped, clearSession]);
+
+  const handleManualWipe = () => {
+    clearSession();
+    setIsWiped(true);
+    router.push("/");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -124,6 +153,27 @@ export default function SummaryPage() {
     setIsSubmitted(true);
   };
 
+  const handleFHIRExport = async () => {
+    try {
+      const { downloadFHIRBundle } = await import("@/lib/fhir-export");
+      downloadFHIRBundle(session);
+    } catch (e) {
+      console.error("FHIR export error:", e);
+      alert("FHIR export failed — please try again");
+    }
+  };
+
+  // Risk scoring data from session
+  const riskPatientData = session ? {
+    age: session.patient?.age,
+    gender: session.patient?.gender,
+    chiefComplaint: session.extractedHistory?.chiefComplaint || summary?.summary?.chiefComplaint || "",
+    hpiNarrative: summary?.summary?.hpiNarrative || "",
+    symptoms: summary?.summary?.reviewOfSystems?.positive || [],
+    pastConditions: summary?.summary?.pastMedicalHistory?.conditions || [],
+    redFlags: session.redFlags || [],
+  } : null;
+
   // --- EDIT IN PLACE LOGIC ---
   const extractTextForEditing = (sec) => {
     if (summary?.editedSections && summary.editedSections[sec.id]) {
@@ -158,6 +208,9 @@ export default function SummaryPage() {
       if (sec.content.negative?.length) parts.push("Negative: " + sec.content.negative.join(", "));
       return parts.join("\n");
     }
+    if (sec.isLabs) {
+      return (sec.content || []).map(l => `${l.test}: ${l.value} ${l.unit || ""} (Ref: ${l.referenceRange || "N/A"})${l.isAbnormal ? " [ABNORMAL]" : ""}`).join("\n");
+    }
     return "";
   };
 
@@ -187,6 +240,19 @@ export default function SummaryPage() {
   const cancelEdit = () => {
     setIsEditing(false);
   };
+
+  // Aggregate lab values from scanned documents
+  const allLabValues = [];
+  if (session?.documents && Array.isArray(session.documents)) {
+    session.documents.forEach((doc) => {
+      if (doc.labValues && Array.isArray(doc.labValues)) {
+        doc.labValues.forEach((lv) => {
+          allLabValues.push({ ...lv, docName: doc.fileName || doc.documentType });
+        });
+      }
+    });
+  }
+  const abnormalLabs = allLabValues.filter((l) => l.isAbnormal);
 
   if (!mounted) return null;
 
@@ -260,58 +326,98 @@ export default function SummaryPage() {
       show: s?.reviewOfSystems && (s.reviewOfSystems.positive?.length > 0 || s.reviewOfSystems.negative?.length > 0),
       isROS: true,
     },
+    {
+      id: "labs",
+      icon: <FileText size={18} />,
+      title: "Scanned Laboratory Investigations",
+      content: allLabValues,
+      show: allLabValues.length > 0,
+      isLabs: true,
+      hasAbnormal: abnormalLabs.length > 0,
+    },
   ];
 
-  // If submitted, show success screen
+  // If submitted, show success screen with DPDP 2023 session security wipe & live OPD routing
   if (isSubmitted) {
     return (
       <>
         <Navbar />
         <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="container container-narrow">
-            <GlassCard hoverable={false} style={{ textAlign: "center", padding: "60px 30px" }}>
-              <div className="success-icon animate-scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-                <div style={{ background: 'var(--color-accent-success)', color: '#fff', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(0, 212, 170, 0.4)' }}>
-                  <CheckCircle2 size={48} />
+            <GlassCard hoverable={false} style={{ textAlign: "center", padding: "50px 24px" }}>
+              <div className="success-icon animate-scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                <div style={{ background: 'var(--color-accent-success)', color: '#fff', borderRadius: '50%', width: 76, height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(0, 212, 170, 0.4)' }}>
+                  <CheckCircle2 size={44} />
                 </div>
               </div>
-              <h1 className="animate-fade-in-up" style={{ color: "var(--color-text-primary)", marginBottom: 16 }}>
-                Submission <span className="text-gradient">Successful</span>
+
+              <h1 className="animate-fade-in-up" style={{ color: "var(--color-text-primary)", marginBottom: 12, fontSize: '2rem' }}>
+                Submission <span className="text-gradient">Confirmed</span>
               </h1>
-              <p className="animate-fade-in-up delay-1" style={{ color: "var(--color-text-secondary)", fontSize: "1.1rem", marginBottom: 32, lineHeight: 1.6 }}>
-                Your clinical summary has been securely linked to your ABHA record and sent to the physician's dashboard.
+              <p className="animate-fade-in-up delay-1" style={{ color: "var(--color-text-secondary)", fontSize: "1rem", marginBottom: 24, lineHeight: 1.6 }}>
+                Your clinical case has been securely transmitted to the OPD physician dashboard and linked to ABHA.
               </p>
-              
-              <div className="success-details animate-fade-in-up delay-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '20px', marginBottom: 32 }}>
+
+              {/* DPDP 2023 Session Security Auto-Wipe Banner */}
+              <div className="security-wipe-banner animate-fade-in-up delay-2" style={{
+                background: isWiped ? 'rgba(0, 212, 170, 0.08)' : 'rgba(255, 179, 71, 0.08)',
+                border: `1px solid ${isWiped ? 'rgba(0, 212, 170, 0.3)' : 'rgba(255, 179, 71, 0.3)'}`,
+                borderRadius: '12px',
+                padding: '14px 18px',
+                marginBottom: 24,
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>{isWiped ? '🔒' : '⏱️'}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                    <strong style={{ color: isWiped ? 'var(--color-accent-primary)' : 'var(--color-accent-warning)', fontSize: '0.88rem' }}>
+                      {isWiped ? 'DPDP Act 2023: Kiosk Session Data Wiped' : `Kiosk Security Auto-Wipe in ${wipeCountdown}s`}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '50px' }}>
+                      Zero Data Retention
+                    </span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    {isWiped
+                      ? 'Local browser memory and clinical logs have been purged to protect your privacy.'
+                      : 'All temporary health records are cleared from this public terminal immediately after case completion.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="success-details animate-fade-in-up delay-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '20px', marginBottom: 28 }}>
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
                   {/* QR Code Token */}
                   <QRToken
                     value={`MEDIKIOSK:${session?.id || 'MK-SESSION'}:${session?.patient?.name || 'Patient'}:${new Date().toISOString()}`}
-                    size={140}
+                    size={130}
                     label={`Token: ${session?.id || 'MK-LIVE'}`}
                   />
                   {/* Details */}
                   <div style={{ flex: 1, minWidth: 160, textAlign: 'left' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Patient ID</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Patient Token</span>
                       <strong style={{ color: 'var(--color-text-primary)' }}>{session?.id || "MK-LIVE-SESSION"}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Patient</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Patient</span>
                       <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.name || 'Patient'}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Department</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Department</span>
                       <strong style={{ color: 'var(--color-text-primary)' }}>{summary?.suggestedDepartment || "General Medicine"}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--color-text-muted)' }}>Time</span>
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>OPD Timestamp</span>
                       <strong style={{ color: 'var(--color-text-primary)' }}>{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</strong>
                     </div>
                   </div>
                 </div>
                 <p style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 12 }}>
-                  📱 Physician scans QR to instantly pull up your record
+                  📱 Physician scans QR or enters token to immediately review pre-consultation summary
                 </p>
               </div>
 
@@ -319,8 +425,31 @@ export default function SummaryPage() {
                 <button className="btn-secondary btn-touch" onClick={handlePrint}>
                   <Printer size={18} /> Print Token & Summary
                 </button>
-                <button className="btn-primary btn-touch" onClick={() => router.push("/")}>
-                  Return to Home
+                <button
+                  className="btn-touch"
+                  onClick={() => router.push("/token")}
+                  style={{
+                    background: 'rgba(0, 212, 170, 0.12)',
+                    border: '1px solid rgba(0, 212, 170, 0.4)',
+                    color: 'var(--color-accent-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 20px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                  id="view-live-queue-btn"
+                >
+                  <Activity size={18} /> View Live OPD Queue
+                </button>
+                <button
+                  className="btn-primary btn-touch"
+                  onClick={handleManualWipe}
+                  id="wipe-and-finish-btn"
+                >
+                  {isWiped ? "Return to Start" : "Wipe Now & Finish"}
                 </button>
               </div>
             </GlassCard>
@@ -411,8 +540,51 @@ export default function SummaryPage() {
                   <button className="btn-icon" onClick={generateSummary} title="Regenerate" id="summary-regen-btn">
                     <Activity size={18} />
                   </button>
+                  <button
+                    className="fhir-export-btn-summary btn-icon no-print"
+                    onClick={handleFHIRExport}
+                    title="Export as HL7 FHIR R4 Bundle — international EHR interoperability standard"
+                    id="summary-fhir-export-btn"
+                  >
+                    <FileCode size={18} />
+                    <span className="fhir-label">FHIR R4</span>
+                  </button>
                 </div>
               </GlassCard>
+
+              {/* AI Risk Score Card */}
+              {riskPatientData && (
+                <div className="no-print">
+                  <RiskScoreCard patientData={riskPatientData} />
+                </div>
+              )}
+
+              {/* Abnormal Diagnostic Lab Alerts Banner */}
+              {abnormalLabs.length > 0 && (
+                <div className="abnormal-labs-banner animate-fade-in no-print" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 18px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 71, 87, 0.08)',
+                  border: '1px solid rgba(255, 71, 87, 0.35)',
+                  marginBottom: 16,
+                }}>
+                  <AlertCircle size={22} style={{ color: '#ff4757', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <strong style={{ color: '#ff4757', fontSize: '0.9rem' }}>
+                        {abnormalLabs.length} Abnormal Lab Values Detected from Digitized Reports
+                      </strong>
+                      <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Priority Action</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+                      {abnormalLabs.map(l => `${l.test}: ${l.value} ${l.unit || ""} (Ref: ${l.referenceRange || "Normal"})`).join(" • ")}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Edit Mode Banner */}
               {isEditing && (
@@ -462,11 +634,11 @@ export default function SummaryPage() {
                                 {sec.content.conditions?.length > 0 && (
                                   <div>
                                     <strong style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>Conditions:</strong>
-                                    <ul style={{ paddingLeft: 20, margin: "6px 0" }}>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
                                       {sec.content.conditions.map((c, i) => (
-                                        <li key={i} style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>{c}</li>
+                                        <span key={i} className="badge print-badge">{c}</span>
                                       ))}
-                                    </ul>
+                                    </div>
                                   </div>
                                 )}
                                 {sec.content.surgeries?.length > 0 && (
@@ -548,6 +720,34 @@ export default function SummaryPage() {
                                     </p>
                                   </div>
                                 )}
+                              </div>
+                            )}
+
+                            {sec.isLabs && (
+                              <div className="summary-labs-wrapper">
+                                <div className="summary-labs-grid">
+                                  {sec.content.map((lab, i) => (
+                                    <div key={i} className={`summary-lab-box ${lab.isAbnormal ? "abnormal" : ""}`}>
+                                      <div className="lab-box-top">
+                                        <span className="lab-box-test">{lab.test}</span>
+                                        {lab.isAbnormal ? (
+                                          <span className="badge badge-danger print-badge" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                                            ⚠️ ABNORMAL
+                                          </span>
+                                        ) : (
+                                          <span className="badge print-badge" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                                            NORMAL
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="lab-box-val-row">
+                                        <span className="lab-box-val">{lab.value} <span className="lab-box-unit">{lab.unit}</span></span>
+                                        {lab.referenceRange && <span className="lab-box-ref">Ref: {lab.referenceRange}</span>}
+                                      </div>
+                                      {lab.docName && <div className="lab-box-source">Source: {lab.docName}</div>}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </>
@@ -801,6 +1001,108 @@ export default function SummaryPage() {
             --color-text-muted: #666;
             background: #fff;
           }
+        }
+        /* FHIR Export Button in summary */
+        .fhir-export-btn-summary {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px !important;
+          border-radius: var(--radius-full) !important;
+          border: 1px solid rgba(77, 184, 255, 0.4) !important;
+          background: rgba(77, 184, 255, 0.08) !important;
+          color: #4db8ff !important;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+
+        .fhir-export-btn-summary:hover {
+          background: rgba(77, 184, 255, 0.16) !important;
+          border-color: rgba(77, 184, 255, 0.7) !important;
+          transform: translateY(-1px);
+        }
+
+        .fhir-label {
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+        }
+
+        /* Diagnostic Lab Values Grid */
+        .summary-labs-wrapper {
+          margin-top: 4px;
+        }
+
+        .summary-labs-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 10px;
+        }
+
+        .summary-lab-box {
+          padding: 10px 12px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--color-border);
+          transition: all 0.2s;
+        }
+
+        .summary-lab-box.abnormal {
+          border-color: rgba(255, 71, 87, 0.4);
+          background: rgba(255, 71, 87, 0.06);
+        }
+
+        .lab-box-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+          margin-bottom: 4px;
+        }
+
+        .lab-box-test {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--color-text-secondary);
+        }
+
+        .lab-box-val-row {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 6px;
+        }
+
+        .lab-box-val {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--color-text-primary);
+        }
+
+        .summary-lab-box.abnormal .lab-box-val {
+          color: #ff4757;
+        }
+
+        .lab-box-unit {
+          font-size: 0.75rem;
+          font-weight: normal;
+          color: var(--color-text-muted);
+        }
+
+        .lab-box-ref {
+          font-size: 0.68rem;
+          color: var(--color-text-muted);
+        }
+
+        .lab-box-source {
+          font-size: 0.65rem;
+          color: var(--color-text-muted);
+          margin-top: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       `}</style>
     </>

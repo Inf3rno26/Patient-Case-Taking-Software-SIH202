@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, Mic, FileText, ClipboardList, Shield, ArrowRight, Volume2, Zap } from "lucide-react";
+import { Activity, Mic, FileText, ClipboardList, Shield, ArrowRight, Volume2, Zap, Monitor, BarChart2, Leaf, Stethoscope, Hand } from "lucide-react";
 import { LANGUAGES, speakText } from "@/lib/languages";
 import { usePatient } from "@/context/PatientContext";
+import KioskIdleAttract from "@/components/KioskIdleAttract";
 
 function WelcomeContent() {
   const router = useRouter();
@@ -62,6 +63,9 @@ function WelcomeContent() {
 
   return (
     <div className="welcome-page">
+      {/* Kiosk Inactivity Attract Loop (Auto-activates after 45s of idle time) */}
+      <KioskIdleAttract idleTimeoutSeconds={45} />
+
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-badge animate-fade-in">
@@ -88,6 +92,60 @@ function WelcomeContent() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Platform Modules Quick Access (Hackathon Judges & Evaluators) */}
+        <div className="modules-showcase animate-fade-in delay-3">
+          <span className="modules-label">⚡ SIH Hackathon Evaluation Portals & Dashboards:</span>
+          <div className="modules-grid">
+            <button
+              className="module-card ayush-card"
+              onClick={() => router.push("/ayush-assessment")}
+              id="home-ayush-btn"
+            >
+              <div className="module-icon"><Leaf size={20} /></div>
+              <div className="module-text">
+                <strong>AYUSH Prakriti Quiz</strong>
+                <span>Visual 10-domain Tridosha constitution assessment</span>
+              </div>
+            </button>
+
+            <button
+              className="module-card queue-card"
+              onClick={() => router.push("/token")}
+              id="home-queue-btn"
+            >
+              <div className="module-icon"><Monitor size={20} /></div>
+              <div className="module-text">
+                <strong>Live OPD Queue Board</strong>
+                <span>Waiting room TV display with token announcements</span>
+              </div>
+            </button>
+
+            <button
+              className="module-card analytics-card"
+              onClick={() => router.push("/analytics")}
+              id="home-analytics-btn"
+            >
+              <div className="module-icon"><BarChart2 size={20} /></div>
+              <div className="module-text">
+                <strong>OPD Analytics & Trends</strong>
+                <span>Real-time hospital throughput & dept statistics</span>
+              </div>
+            </button>
+
+            <button
+              className="module-card doctor-card"
+              onClick={() => router.push("/physician")}
+              id="home-doctor-btn"
+            >
+              <div className="module-icon"><Stethoscope size={20} /></div>
+              <div className="module-text">
+                <strong>Physician OPD Portal</strong>
+                <span>Instant FHIR R4 clinical review & SOAP notes</span>
+              </div>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -127,16 +185,31 @@ function WelcomeContent() {
             <ArrowRight size={22} />
             {isNavigating ? "Opening Registration..." : "Continue / आगे बढ़ें"}
           </button>
-          <button
-            className="demo-mode-btn btn-touch"
-            onClick={handleDemoMode}
-            id="welcome-demo-btn"
-            disabled={isNavigating || isDemoMode}
-            title="Load a pre-filled patient demo to skip to the summary"
-          >
-            <Zap size={16} />
-            {isDemoMode ? "Loading Demo..." : "⚡ Demo / Judge Mode"}
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              className="demo-mode-btn btn-touch"
+              onClick={handleDemoMode}
+              id="welcome-demo-btn"
+              disabled={isNavigating || isDemoMode}
+              title="Load a pre-filled patient demo to skip to the summary"
+            >
+              <Zap size={16} />
+              {isDemoMode ? "Loading Demo..." : "⚡ Demo / Judge Mode"}
+            </button>
+            <button
+              className="attract-trigger-btn btn-touch"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.__triggerKioskAttract) {
+                  window.__triggerKioskAttract();
+                }
+              }}
+              title="Preview the hospital kiosk idle screensaver / attract loop"
+              id="welcome-attract-btn"
+            >
+              <Hand size={15} />
+              <span>Preview Kiosk Attract Loop</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -274,6 +347,130 @@ function WelcomeContent() {
           cursor: not-allowed;
         }
 
+        .attract-trigger-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          border-radius: var(--radius-full);
+          background: rgba(0, 212, 170, 0.08);
+          border: 1px solid rgba(0, 212, 170, 0.3);
+          color: var(--color-accent-primary);
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .attract-trigger-btn:hover {
+          background: rgba(0, 212, 170, 0.16);
+          border-color: rgba(0, 212, 170, 0.5);
+          transform: translateY(-1px);
+        }
+
+        /* Modules Showcase */
+        .modules-showcase {
+          width: 100%;
+          max-width: 900px;
+          margin-top: 28px;
+          text-align: left;
+        }
+
+        .modules-label {
+          display: block;
+          font-size: 0.76rem;
+          font-weight: 700;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          margin-bottom: 12px;
+          text-align: center;
+        }
+
+        .modules-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 12px;
+        }
+
+        .module-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: var(--radius-md);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--color-border);
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.2s ease;
+        }
+
+        .module-card:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .module-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .ayush-card:hover {
+          border-color: rgba(255, 153, 51, 0.5);
+          box-shadow: 0 0 20px rgba(255, 153, 51, 0.15);
+        }
+        .ayush-card .module-icon {
+          background: rgba(255, 153, 51, 0.12);
+          color: #ff9933;
+        }
+
+        .queue-card:hover {
+          border-color: rgba(0, 212, 170, 0.5);
+          box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+        }
+        .queue-card .module-icon {
+          background: rgba(0, 212, 170, 0.12);
+          color: #00d4aa;
+        }
+
+        .analytics-card:hover {
+          border-color: rgba(77, 184, 255, 0.5);
+          box-shadow: 0 0 20px rgba(77, 184, 255, 0.15);
+        }
+        .analytics-card .module-icon {
+          background: rgba(77, 184, 255, 0.12);
+          color: #4db8ff;
+        }
+
+        .doctor-card:hover {
+          border-color: rgba(162, 155, 254, 0.5);
+          box-shadow: 0 0 20px rgba(162, 155, 254, 0.15);
+        }
+        .doctor-card .module-icon {
+          background: rgba(162, 155, 254, 0.12);
+          color: #a29bfe;
+        }
+
+        .module-text strong {
+          display: block;
+          font-size: 0.85rem;
+          color: var(--color-text-primary);
+          margin-bottom: 2px;
+        }
+
+        .module-text span {
+          display: block;
+          font-size: 0.72rem;
+          color: var(--color-text-muted);
+          line-height: 1.3;
+        }
+
         @media (max-width: 768px) {
           .welcome-page {
             padding: 40px 16px 100px;
@@ -281,6 +478,10 @@ function WelcomeContent() {
 
           .features-row {
             grid-template-columns: repeat(2, 1fr);
+          }
+
+          .modules-grid {
+            grid-template-columns: 1fr;
           }
         }
 

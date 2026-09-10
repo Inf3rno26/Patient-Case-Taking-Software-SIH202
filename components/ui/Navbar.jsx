@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, AlertTriangle, ArrowLeft, Home } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Home, Monitor, BarChart2, Leaf, Stethoscope } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -31,6 +31,46 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* Center Quick Navigation for Judges & Evaluators */}
+        <div className="navbar-center no-print">
+          <button
+            className={`nav-pill ${pathname === "/token" ? "active" : ""}`}
+            onClick={() => router.push("/token")}
+            title="Live OPD Queue Display (TV Mode)"
+            id="nav-queue-btn"
+          >
+            <Monitor size={15} />
+            <span className="nav-pill-text">OPD Queue</span>
+          </button>
+          <button
+            className={`nav-pill ${pathname === "/ayush-assessment" ? "active" : ""}`}
+            onClick={() => router.push("/ayush-assessment")}
+            title="AYUSH Prakriti Assessment Quiz"
+            id="nav-ayush-btn"
+          >
+            <Leaf size={15} />
+            <span className="nav-pill-text">AYUSH Prakriti</span>
+          </button>
+          <button
+            className={`nav-pill ${pathname === "/analytics" ? "active" : ""}`}
+            onClick={() => router.push("/analytics")}
+            title="OPD Real-Time Performance Analytics"
+            id="nav-analytics-btn"
+          >
+            <BarChart2 size={15} />
+            <span className="nav-pill-text">Analytics</span>
+          </button>
+          <button
+            className={`nav-pill ${pathname === "/physician" ? "active" : ""}`}
+            onClick={() => router.push("/physician")}
+            title="Physician OPD Dashboard"
+            id="nav-physician-btn"
+          >
+            <Stethoscope size={15} />
+            <span className="nav-pill-text">Doctor</span>
+          </button>
+        </div>
+
         <div className="navbar-right">
           <button
             className="btn-danger btn-touch"
@@ -40,10 +80,10 @@ export default function Navbar() {
               }
             }}
             id="nav-emergency-btn"
-            style={{ padding: "8px 16px", minHeight: "42px", fontSize: "0.85rem" }}
+            style={{ padding: "8px 16px", minHeight: "40px", fontSize: "0.82rem" }}
           >
-            <AlertTriangle size={16} />
-            Emergency
+            <AlertTriangle size={15} />
+            <span className="emergency-text">Emergency</span>
           </button>
           {!isHome && (
             <button
@@ -131,6 +171,61 @@ export default function Navbar() {
 
         @media (max-width: 480px) {
           .navbar-title {
+            display: none;
+          }
+        }
+
+        .navbar-center {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 4px;
+          border-radius: var(--radius-full);
+        }
+
+        .nav-pill {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: var(--radius-full);
+          border: none;
+          background: transparent;
+          color: var(--color-text-secondary);
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .nav-pill:hover {
+          color: var(--color-text-primary);
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-pill.active {
+          background: rgba(0, 212, 170, 0.15);
+          color: var(--color-accent-primary);
+          font-weight: 600;
+          box-shadow: 0 0 12px rgba(0, 212, 170, 0.2);
+        }
+
+        @media (max-width: 900px) {
+          .nav-pill-text {
+            display: none;
+          }
+          .nav-pill {
+            padding: 8px 10px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .navbar-center {
+            display: none;
+          }
+          .emergency-text {
             display: none;
           }
         }

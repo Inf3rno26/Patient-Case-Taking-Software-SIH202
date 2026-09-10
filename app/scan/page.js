@@ -10,6 +10,8 @@ import DocumentUpload from "@/components/DocumentUpload";
 import MedicalTimeline from "@/components/MedicalTimeline";
 import CameraCapture from "@/components/CameraCapture";
 import { usePatient } from "@/context/PatientContext";
+import DrugInteractionCard from "@/components/DrugInteractionCard";
+import { checkDrugInteractions } from "@/lib/drug-interactions";
 
 function ScanContent() {
   const router = useRouter();
@@ -21,7 +23,10 @@ function ScanContent() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (session?.documents && session.documents.length > 0) {
+      setDocuments(session.documents);
+    }
+  }, [session]);
 
   const handleUpload = async (files) => {
     setIsAnalyzing(true);
@@ -68,6 +73,18 @@ function ScanContent() {
     handleUpload(photos);
   };
 
+  // Aggregate medications from scanned documents and patient drug history
+  const allMeds = [];
+  documents.forEach((doc) => {
+    if (doc.medications && Array.isArray(doc.medications)) {
+      doc.medications.forEach((m) => allMeds.push(m));
+    }
+  });
+  if (session?.extractedHistory?.drugHistory?.current) {
+    session.extractedHistory.drugHistory.current.forEach((m) => allMeds.push(m));
+  }
+  const interactions = checkDrugInteractions(allMeds);
+
   if (!mounted) return null;
 
   return (
@@ -109,6 +126,13 @@ function ScanContent() {
             <GlassCard hoverable={false} style={{ marginTop: 24 }}>
               <LoadingPulse text="🔍 Analyzing documents with AI... Extracting diagnoses, medications, and lab values" size="large" />
             </GlassCard>
+          )}
+
+          {/* Drug Interaction Guard Card */}
+          {allMeds.length > 0 && (
+            <div className="animate-fade-in-up" style={{ marginTop: 24 }}>
+              <DrugInteractionCard interactions={interactions} scannedMeds={allMeds} />
+            </div>
           )}
 
           {/* Results Timeline */}

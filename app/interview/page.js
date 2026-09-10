@@ -9,6 +9,7 @@ import {
   MessageSquare,
   FileText,
   Keyboard,
+  MapPin,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -17,6 +18,7 @@ import VoiceRecorder from "@/components/VoiceRecorder";
 import TouchOptions from "@/components/TouchOptions";
 import InterviewProgress from "@/components/InterviewProgress";
 import RedFlagAlert from "@/components/RedFlagAlert";
+import BodyMap from "@/components/BodyMap";
 import { usePatient } from "@/context/PatientContext";
 import { speakText } from "@/lib/languages";
 
@@ -44,6 +46,8 @@ function InterviewContent() {
   const [mounted, setMounted] = useState(false);
   const [otherInput, setOtherInput] = useState("");      // for "Other" inline box
   const [showOtherInput, setShowOtherInput] = useState(false); // show when "Other" tapped
+  const [showBodyMap, setShowBodyMap] = useState(false); // body map pain locator
+  const [bodyMapUsed, setBodyMapUsed] = useState(false); // track if used already
   const chatEndRef = useRef(null);
   const otherInputRef = useRef(null);
 
@@ -173,6 +177,12 @@ function InterviewContent() {
     ]
   );
 
+  const PAIN_TRIGGERS = [
+    "pain", "दर्द", "ache", "hurts", "hurt", "sore", "chest pain",
+    "body pain", "stomach pain", "सीने में दर्द", "पेट दर्द", "शरीर में दर्द",
+    "headache", "सिर दर्द", "leg pain", "back pain", "joint pain", "injury", "चोट",
+  ];
+
   const handleOptionSelect = (option) => {
     const text = typeof option === "string" ? option : option.text;
     const textEn = typeof option === "object" ? (option.text_english || option.text) : option;
@@ -187,8 +197,26 @@ function InterviewContent() {
       setTimeout(() => otherInputRef.current?.focus(), 100);
       return;
     }
+
+    // Auto-show BodyMap if patient selects a pain-related chief complaint
+    if (
+      currentSection === "chief_complaint" &&
+      !bodyMapUsed &&
+      PAIN_TRIGGERS.some((trigger) => text.toLowerCase().includes(trigger.toLowerCase()))
+    ) {
+      setShowBodyMap(true);
+    }
+
     setShowOtherInput(false);
     sendMessage(text);
+  };
+
+  const handleBodyMapConfirm = (locationData) => {
+    // Auto-send body map result as a structured message into the interview
+    const msg = locationData.description;
+    setShowBodyMap(false);
+    setBodyMapUsed(true);
+    sendMessage(msg);
   };
 
   const handleOtherSubmit = (e) => {
@@ -271,6 +299,28 @@ function InterviewContent() {
                   options={currentOptions}
                   onSelect={handleOptionSelect}
                   disabled={isLoading}
+                />
+              </div>
+            )}
+
+            {/* Body Map — auto-appears for pain-related complaints */}
+            {showBodyMap && !isLoading && (
+              <div className="bodymap-section animate-fade-in-up">
+                <div className="bodymap-toggle-header">
+                  <MapPin size={14} />
+                  <span>Show us where it hurts — Tap your pain location</span>
+                  <button
+                    className="btn-icon"
+                    onClick={() => setShowBodyMap(false)}
+                    title="Skip body map"
+                    id="bodymap-skip-btn"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <BodyMap
+                  onLocationSelect={handleBodyMapConfirm}
+                  language={language}
                 />
               </div>
             )}
@@ -604,6 +654,30 @@ function InterviewContent() {
           background: rgba(0, 212, 170, 0.06);
           border-color: rgba(0, 212, 170, 0.25);
           color: var(--color-accent-primary);
+        }
+        /* Body Map Section */
+        .bodymap-section {
+          width: 100%;
+          max-width: 480px;
+          margin: 0 auto;
+        }
+
+        .bodymap-toggle-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: rgba(255, 94, 87, 0.06);
+          border: 1px solid rgba(255, 94, 87, 0.2);
+          border-bottom: none;
+          border-radius: var(--radius-md) var(--radius-md) 0 0;
+          font-size: 0.8rem;
+          color: #ff8c82;
+          font-weight: 500;
+        }
+
+        .bodymap-toggle-header button {
+          margin-left: auto;
         }
       `}</style>
     </>

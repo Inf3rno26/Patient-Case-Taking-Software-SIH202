@@ -1260,3 +1260,46 @@ h1, h2, h3, h4, h5, h6 {
     break-inside: avoid;
   }
 }
+
+/* ---------- Accessibility Modes (Elderly & Low Vision) ---------- */
+html[data-font-size="large"] {
+  font-size: 116% !important;
+}
+
+html[data-font-size="xlarge"] {
+  font-size: 132% !important;
+}
+
+html[data-contrast="high"] {
+  --color-bg-primary: #000000 !important;
+  --color-bg-secondary: #0a0a0a !important;
+  --color-bg-glass: #111111 !important;
+  --color-border: #ffffff !important;
+  --color-border-glow: #ffff00 !important;
+  --color-text-primary: #ffffff !important;
+  --color-text-secondary: #ffff55 !important;
+  --color-text-muted: #dddddd !important;
+  --color-accent-primary: #ffff00 !important;
+}
+
+html[data-contrast="high"] .glass-card,
+html[data-contrast="high"] .summary-section,
+html[data-contrast="high"] .language-card,
+html[data-contrast="high"] .touch-option {
+  background: #080808 !important;
+  border: 2px solid #ffff00 !important;
+  box-shadow: none !important;
+}
+
+html[data-contrast="high"] .btn-primary {
+  background: #ffff00 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #ffffff !important;
+}
+
+html[data-contrast="high"] .btn-secondary {
+  background: #222222 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}

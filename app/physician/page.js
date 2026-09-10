@@ -16,9 +16,13 @@ import {
   X,
   RefreshCw,
   Sparkles,
+  Download,
+  FileCode,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
+import DrugInteractionPanel from "@/components/DrugInteractionPanel";
+import RiskScoreCard from "@/components/RiskScoreCard";
 
 // Demo patient queue (baseline — always shown)
 const DEMO_PATIENTS = [
@@ -276,6 +280,75 @@ export default function PhysicianPage() {
     setEditDraft(null);
   };
 
+  /** Extract medication list from patient summary for drug interaction check */
+  const getPatientMedications = (patient) => {
+    if (!patient?.summary?.drugs) return [];
+    const drugStr = patient.summary.drugs;
+    if (typeof drugStr === "string" && drugStr !== "None" && drugStr !== "Not recorded") {
+      // Parse comma/newline separated drug list
+      return drugStr
+        .split(/[,\n;]+/)
+        .map((d) => d.trim())
+        .filter((d) => d.length > 2 && d !== "None" && d !== "Not recorded");
+    }
+    return [];
+  };
+
+  /** Extract risk scoring data from physician patient */
+  const getPatientRiskData = (patient) => {
+    if (!patient) return null;
+    return {
+      age: patient.age,
+      gender: patient.gender === "F" ? "female" : "male",
+      chiefComplaint: patient.chiefComplaint || patient.summary?.chiefComplaint || "",
+      hpiNarrative: patient.summary?.hpi || "",
+      symptoms: [],
+      pastConditions: patient.summary?.pastHistory ? [patient.summary.pastHistory] : [],
+      redFlags: patient.priority === "emergency" ? [{ reason: "Emergency priority" }] : [],
+    };
+  };
+
+  /** FHIR Export — build session from physician patient and download */
+  const handleFHIRExport = async (patient) => {
+    try {
+      const { downloadFHIRBundle } = await import("@/lib/fhir-export");
+      // Build a minimal session-like object from physician patient data
+      const fakeSession = {
+        id: patient.id,
+        patient: {
+          name: patient.name,
+          age: patient.age,
+          gender: patient.gender === "M" ? "male" : "female",
+          abhaId: null,
+        },
+        summary: {
+          summary: {
+            chiefComplaint: patient.summary?.chiefComplaint || patient.chiefComplaint,
+            hpiNarrative: patient.summary?.hpi,
+            pastMedicalHistory: { conditions: patient.summary?.pastHistory ? [patient.summary.pastHistory] : [] },
+            drugHistory: {
+              current: getPatientMedications(patient).map((d) => (typeof d === "string" ? { name: d } : d)),
+            },
+            allergyHistory: patient.summary?.allergies === "NKDA"
+              ? { noKnownAllergies: true }
+              : { drugs: patient.summary?.allergies ? [patient.summary.allergies] : [] },
+            familyHistory: { conditions: patient.summary?.family ? [patient.summary.family] : [] },
+            personalHistory: { lifestyle: patient.summary?.personal || "" },
+            reviewOfSystems: { positive: [], negative: [] },
+            priorInvestigations: [],
+          },
+          summaryNarrative: patient.summary?.hpi || "AI-generated clinical summary",
+          priorityLevel: patient.priority,
+          suggestedDepartment: patient.department,
+        },
+      };
+      downloadFHIRBundle(fakeSession);
+    } catch (e) {
+      console.error("FHIR export error:", e);
+      alert("FHIR export failed — please try again");
+    }
+  };
+
   const getPriorityBadge = (priority) => {
     const classes = {
       routine: "badge",
@@ -457,6 +530,17 @@ export default function PhysicianPage() {
                           </div>
                         ))}
 
+                        {/* Drug Interaction Panel */}
+                        <DrugInteractionPanel
+                          medications={getPatientMedications(selectedPatient)}
+                          patientName={selectedPatient.name}
+                        />
+
+                        {/* Risk Score Card */}
+                        <RiskScoreCard
+                          patientData={getPatientRiskData(selectedPatient)}
+                        />
+
                         {/* Actions */}
                         <div className="detail-actions">
                           <button
@@ -484,6 +568,15 @@ export default function PhysicianPage() {
                           >
                             <XCircle size={18} />
                             Reject
+                          </button>
+                          <button
+                            className="fhir-export-btn"
+                            onClick={() => handleFHIRExport(selectedPatient)}
+                            id="physician-fhir-export-btn"
+                            title="Export as HL7 FHIR R4 Bundle (international EHR standard)"
+                          >
+                            <FileCode size={16} />
+                            Export FHIR R4
                           </button>
                         </div>
                       </>
@@ -828,6 +921,31 @@ export default function PhysicianPage() {
           .stats-row {
             grid-template-columns: repeat(3, 1fr);
           }
+        }
+
+        /* FHIR Export Button */
+        .fhir-export-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          border-radius: var(--radius-md);
+          border: 1px solid rgba(77, 184, 255, 0.35);
+          background: rgba(77, 184, 255, 0.06);
+          color: #4db8ff;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          letter-spacing: 0.02em;
+          white-space: nowrap;
+        }
+
+        .fhir-export-btn:hover {
+          background: rgba(77, 184, 255, 0.14);
+          border-color: rgba(77, 184, 255, 0.6);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(77, 184, 255, 0.2);
         }
 
         @media (max-width: 600px) {

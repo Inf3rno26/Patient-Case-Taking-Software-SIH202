@@ -42,7 +42,17 @@ Generate a comprehensive clinical summary.`;
 
       let parsed;
       try {
-        parsed = JSON.parse(responseText);
+        let cleanText = responseText.trim();
+        if (cleanText.startsWith("```json")) {
+          cleanText = cleanText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        } else if (cleanText.startsWith("```")) {
+          cleanText = cleanText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+        }
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanText = jsonMatch[0];
+        }
+        parsed = JSON.parse(cleanText);
       } catch (e) {
         parsed = {
           summary: {

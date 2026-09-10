@@ -25,6 +25,8 @@ function RegisterContent() {
   const [isVerifyingAbha, setIsVerifyingAbha] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
+  const [abhaFetchStep, setAbhaFetchStep] = useState(null); // null | 'fetching' | 'done'
+  const [abhaRecords, setAbhaRecords] = useState(null);
   const [form, setForm] = useState({
     abhaId: "",
     name: "",
@@ -51,17 +53,37 @@ function RegisterContent() {
   const handleVerifyOtp = () => {
     if (otp.length === 4) {
       setIsVerifyingAbha(true);
-      // Simulate network delay for OTP verification
+      // Step 1: Verify OTP
       setTimeout(() => {
         setIsVerifyingAbha(false);
-        setOtpSent(false); // hide OTP field after success
-        setForm((prev) => ({
-          ...prev,
-          name: "Rajesh Kumar",
-          age: "45",
-          gender: "male",
-          phone: "9876543210",
-        }));
+        setOtpSent(false);
+        // Step 2: Animate ABDM health record fetch
+        setAbhaFetchStep("fetching");
+        // Simulate fetching records from ABDM
+        setTimeout(() => {
+          const mockRecords = {
+            name: "Rajesh Kumar",
+            age: "45",
+            gender: "male",
+            phone: "9876543210",
+            abhaAddress: form.abhaId + "@abdm",
+            // Linked health records from ABDM
+            lastVisit: { date: "12 Aug 2026", hospital: "AIIMS New Delhi", dept: "Endocrinology" },
+            existingConditions: ["Type 2 Diabetes Mellitus (since 2019)", "Hypertension (since 2021)"],
+            currentMedications: ["Metformin 500mg BD", "Amlodipine 5mg OD", "Ecosprin 75mg"],
+            lastLabResults: [{ test: "HbA1c", value: "7.8%", date: "Jun 2026", flag: "↑" }, { test: "Creatinine", value: "1.0", date: "Jun 2026", flag: "" }],
+            vaccinationStatus: "COVID-19 (2 doses), Influenza (Oct 2025)",
+          };
+          setAbhaRecords(mockRecords);
+          setAbhaFetchStep("done");
+          setForm((prev) => ({
+            ...prev,
+            name: mockRecords.name,
+            age: mockRecords.age,
+            gender: mockRecords.gender,
+            phone: mockRecords.phone,
+          }));
+        }, 2200);
       }, 1000);
     }
   };
@@ -188,18 +210,104 @@ function RegisterContent() {
                     </div>
                   )}
 
-                  {form.name && (
+                  {/* ABHA Fetching Animation */}
+                  {abhaFetchStep === "fetching" && (
+                    <div className="abha-fetching animate-fade-in">
+                      <div className="abdm-logo-row">
+                        <div className="abdm-logo">🏥</div>
+                        <div className="abdm-connecting">
+                          <div className="connect-pulse" />
+                          <span>Fetching records from ABDM National Health Registry...</span>
+                        </div>
+                      </div>
+                      <div className="fetch-steps">
+                        {[
+                          "🔍 Authenticating ABHA identity...",
+                          "📋 Retrieving past medical history...",
+                          "💊 Fetching linked medications...",
+                          "🧪 Loading lab results...",
+                        ].map((step, i) => (
+                          <div key={i} className="fetch-step" style={{ animationDelay: `${i * 0.45}s` }}>
+                            <div className="step-dot" style={{ animationDelay: `${i * 0.45}s` }} />
+                            <span>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ABHA Records Prefill Result */}
+                  {abhaFetchStep === "done" && abhaRecords && form.name && (
                     <div className="abha-result animate-fade-in">
-                      <div className="badge badge-success">✓ ABHA Verified</div>
+                      <div className="abha-verified-header">
+                        <span className="badge badge-success">✓ ABHA Verified &amp; Records Prefilled</span>
+                        <span className="abdm-badge">🇮🇳 Ayushman Bharat Digital Mission</span>
+                      </div>
+                      
                       <div className="patient-card">
                         <User size={32} />
                         <div>
                           <h3>{form.name}</h3>
-                          <p>
-                            Age: {form.age} | Gender: {form.gender} | Phone:{" "}
-                            {form.phone}
-                          </p>
+                          <p>Age: {form.age} | Gender: {form.gender} | 📞 {form.phone}</p>
+                          <p style={{ fontSize: "0.72rem", color: "var(--color-accent-primary)" }}>ABHA: {abhaRecords.abhaAddress}</p>
                         </div>
+                      </div>
+
+                      {/* Pre-fetched ABDM Health Records */}
+                      <div className="abdm-records">
+                        <div className="abdm-record-header">
+                          <span>📂 Pre-loaded Health Records from ABDM</span>
+                        </div>
+
+                        <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+                          <span className="record-icon">🏥</span>
+                          <div>
+                            <strong>Last Visit:</strong> {abhaRecords.lastVisit.hospital}
+                            <span className="record-date">{abhaRecords.lastVisit.date} — {abhaRecords.lastVisit.dept}</span>
+                          </div>
+                        </div>
+
+                        <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+                          <span className="record-icon">🩺</span>
+                          <div>
+                            <strong>Known Conditions:</strong>
+                            <div className="record-tags">
+                              {abhaRecords.existingConditions.map((c, i) => (
+                                <span key={i} className="record-tag condition">{c}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+                          <span className="record-icon">💊</span>
+                          <div>
+                            <strong>Current Medications:</strong>
+                            <div className="record-tags">
+                              {abhaRecords.currentMedications.map((m, i) => (
+                                <span key={i} className="record-tag medication">{m}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+                          <span className="record-icon">🧪</span>
+                          <div>
+                            <strong>Recent Labs:</strong>
+                            <div className="record-tags">
+                              {abhaRecords.lastLabResults.map((l, i) => (
+                                <span key={i} className={`record-tag ${l.flag ? "abnormal" : "normal"}`}>
+                                  {l.test}: {l.value} {l.flag} ({l.date})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="abdm-prefill-note">
+                          ✅ MediKiosk will use these records to pre-fill your interview — saving time and improving accuracy
+                        </p>
                       </div>
 
                       <button
@@ -209,7 +317,7 @@ function RegisterContent() {
                         style={{ width: "100%", marginTop: 16 }}
                       >
                         <ArrowRight size={20} />
-                        Proceed to Interview
+                        Continue with Pre-filled Interview
                       </button>
                     </div>
                   )}
@@ -451,6 +559,198 @@ function RegisterContent() {
         .patient-card p {
           font-size: 0.82rem;
           color: var(--color-text-muted);
+        }
+
+        /* ABHA Fetch Animation */
+        .abha-fetching {
+          margin-top: 20px;
+          padding: 20px;
+          background: rgba(0, 153, 255, 0.06);
+          border: 1px solid rgba(0, 153, 255, 0.2);
+          border-radius: var(--radius-md);
+        }
+
+        .abdm-logo-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+
+        .abdm-logo {
+          font-size: 2rem;
+          filter: drop-shadow(0 0 10px rgba(0,153,255,0.5));
+        }
+
+        .abdm-connecting {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.82rem;
+          color: #4db8ff;
+          font-weight: 500;
+        }
+
+        .connect-pulse {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #4db8ff;
+          animation: pulse-dot 1s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+
+        @keyframes pulse-dot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.6); opacity: 0.4; }
+        }
+
+        .fetch-steps {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .fetch-step {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          animation: step-appear 0.4s ease-out both;
+        }
+
+        @keyframes step-appear {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        .step-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #4db8ff;
+          flex-shrink: 0;
+          animation: step-pulse 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes step-pulse {
+          from { opacity: 0.3; }
+          to { opacity: 1; }
+        }
+
+        /* ABHA Result with ABDM records */
+        .abha-verified-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
+        .abdm-badge {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #ff9933;
+          padding: 3px 10px;
+          border-radius: var(--radius-full);
+          border: 1px solid rgba(255,153,51,0.3);
+          background: rgba(255,153,51,0.06);
+        }
+
+        .abdm-records {
+          margin-top: 16px;
+          padding: 14px;
+          background: rgba(0, 153, 255, 0.04);
+          border: 1px solid rgba(0, 153, 255, 0.15);
+          border-radius: var(--radius-md);
+        }
+
+        .abdm-record-header {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #4db8ff;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid rgba(77, 184, 255, 0.15);
+        }
+
+        .abdm-record-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          margin-bottom: 12px;
+          font-size: 0.8rem;
+        }
+
+        .record-icon {
+          font-size: 1.2rem;
+          flex-shrink: 0;
+        }
+
+        .abdm-record-item strong {
+          display: block;
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          margin-bottom: 4px;
+        }
+
+        .record-date {
+          display: block;
+          font-size: 0.72rem;
+          color: var(--color-text-muted);
+          margin-top: 2px;
+        }
+
+        .record-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+          margin-top: 4px;
+        }
+
+        .record-tag {
+          padding: 3px 10px;
+          border-radius: var(--radius-full);
+          font-size: 0.72rem;
+          font-weight: 500;
+          border: 1px solid;
+        }
+
+        .record-tag.condition {
+          background: rgba(255, 179, 71, 0.08);
+          border-color: rgba(255, 179, 71, 0.3);
+          color: #ffb347;
+        }
+
+        .record-tag.medication {
+          background: rgba(0, 212, 170, 0.08);
+          border-color: rgba(0, 212, 170, 0.3);
+          color: var(--color-accent-primary);
+        }
+
+        .record-tag.abnormal {
+          background: rgba(255, 71, 87, 0.08);
+          border-color: rgba(255, 71, 87, 0.3);
+          color: #ff6b7a;
+        }
+
+        .record-tag.normal {
+          background: rgba(0, 212, 170, 0.06);
+          border-color: rgba(0, 212, 170, 0.2);
+          color: var(--color-accent-primary);
+        }
+
+        .abdm-prefill-note {
+          font-size: 0.75rem;
+          color: var(--color-accent-primary);
+          margin-top: 10px;
+          padding: 8px 10px;
+          background: rgba(0, 212, 170, 0.06);
+          border-radius: 6px;
         }
 
         @media (max-width: 600px) {
