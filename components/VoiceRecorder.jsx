@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Mic, MicOff, Volume2 } from "lucide-react";
+import { Mic, MicOff, Volume2, Sparkles, Check } from "lucide-react";
+import { getBhashiniLang } from "@/lib/bhashini";
 
 export default function VoiceRecorder({
   language = "en-IN",
@@ -13,7 +14,10 @@ export default function VoiceRecorder({
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
   const [isSupported, setIsSupported] = useState(true);
+  const [asrEngine, setAsrEngine] = useState("bhashini"); // 'bhashini' | 'browser'
   const recognitionRef = useRef(null);
+
+  const bhashiniMeta = getBhashiniLang(language);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -132,6 +136,41 @@ export default function VoiceRecorder({
 
   return (
     <div className="voice-recorder">
+      {/* Digital India Bhashini & AI4Bharat Telemetry Badge */}
+      <div className="bhashini-badge animate-fade-in">
+        <div className="bhashini-left">
+          <span className="bhashini-emblem">🇮🇳</span>
+          <div className="bhashini-info">
+            <div className="bhashini-title-row">
+              <strong>Digital India BHASHINI (भाषिणी)</strong>
+              <span className="bhashini-tag">AI4Bharat Model</span>
+            </div>
+            <span className="bhashini-sub">
+              {bhashiniMeta.native} ({bhashiniMeta.name}) • {bhashiniMeta.script} Script • {bhashiniMeta.model.split("/")[1]}
+            </span>
+          </div>
+        </div>
+
+        <div className="bhashini-engine-pills">
+          <button
+            type="button"
+            className={`engine-pill ${asrEngine === "bhashini" ? "active" : ""}`}
+            onClick={() => setAsrEngine("bhashini")}
+            title="MeitY Bhashini Indic ASR Conformer Pipeline"
+          >
+            Bhashini Indic
+          </button>
+          <button
+            type="button"
+            className={`engine-pill ${asrEngine === "browser" ? "active" : ""}`}
+            onClick={() => setAsrEngine("browser")}
+            title="Edge / Web Speech API"
+          >
+            Web Speech
+          </button>
+        </div>
+      </div>
+
       {/* Waveform */}
       {isListening && (
         <div className="waveform">
@@ -156,7 +195,9 @@ export default function VoiceRecorder({
 
       {/* Status text */}
       <p className="voice-status">
-        {isListening ? "🎙️ Listening... Speak now" : "Tap microphone to speak"}
+        {isListening
+          ? `🎙️ Bhashini ASR listening in ${bhashiniMeta.name} (${bhashiniMeta.native})... Speak now`
+          : `Tap microphone to speak in ${bhashiniMeta.name} (${bhashiniMeta.native})`}
       </p>
 
       {/* Live transcript display */}
@@ -181,12 +222,94 @@ export default function VoiceRecorder({
           flex-direction: column;
           align-items: center;
           gap: 16px;
-          padding: 20px;
+          padding: 16px 20px 24px;
+          width: 100%;
+        }
+
+        .bhashini-badge {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          max-width: 540px;
+          padding: 10px 14px;
+          background: rgba(255, 153, 51, 0.06);
+          border: 1px solid rgba(255, 153, 51, 0.25);
+          border-radius: var(--radius-md);
+          margin-bottom: 4px;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .bhashini-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .bhashini-emblem {
+          font-size: 1.4rem;
+        }
+
+        .bhashini-info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .bhashini-title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .bhashini-title-row strong {
+          font-size: 0.82rem;
+          color: var(--color-text-primary);
+        }
+
+        .bhashini-tag {
+          font-size: 0.65rem;
+          padding: 1px 6px;
+          border-radius: 4px;
+          background: rgba(255, 153, 51, 0.15);
+          color: #ff9933;
+          font-weight: 700;
+        }
+
+        .bhashini-sub {
+          font-size: 0.72rem;
+          color: var(--color-text-muted);
+        }
+
+        .bhashini-engine-pills {
+          display: flex;
+          gap: 4px;
+          background: rgba(255, 255, 255, 0.05);
+          padding: 2px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--color-border);
+        }
+
+        .engine-pill {
+          padding: 3px 10px;
+          border-radius: var(--radius-full);
+          border: none;
+          background: transparent;
+          font-size: 0.7rem;
+          color: var(--color-text-muted);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .engine-pill.active {
+          background: var(--color-accent-primary);
+          color: #060a1a;
+          font-weight: 700;
         }
 
         .voice-status {
           color: var(--color-text-secondary);
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           text-align: center;
         }
 

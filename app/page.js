@@ -151,6 +151,12 @@ function WelcomeContent() {
 
       {/* Language Selection */}
       <section className="language-section animate-fade-in-up delay-4">
+        <div className="bhashini-mission-pill">
+          <span style={{ fontSize: '1.1rem' }}>🇮🇳</span>
+          <span>Digital India <strong>BHASHINI</strong> (भाषा मिशन) & AI4Bharat Indic Speech Engine</span>
+          <span className="bhashini-verified">12 Languages Active</span>
+        </div>
+
         <h2>Select Your Language / अपनी भाषा चुनें</h2>
         <p style={{ color: "var(--color-text-muted)", marginBottom: 20 }}>
           <Volume2 size={14} style={{ display: "inline", verticalAlign: "middle" }} /> Tap any language to begin / शुरू करने के लिए भाषा चुनें
@@ -489,6 +495,35 @@ function WelcomeContent() {
           .features-row {
             grid-template-columns: 1fr;
           }
+        }
+
+        .bhashini-mission-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 18px;
+          background: rgba(255, 153, 51, 0.08);
+          border: 1px solid rgba(255, 153, 51, 0.3);
+          border-radius: var(--radius-full);
+          font-size: 0.8rem;
+          color: var(--color-text-secondary);
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .bhashini-mission-pill strong {
+          color: #ff9933;
+        }
+
+        .bhashini-verified {
+          font-size: 0.68rem;
+          padding: 2px 8px;
+          border-radius: 50px;
+          background: rgba(0, 212, 170, 0.15);
+          color: var(--color-accent-primary);
+          border: 1px solid rgba(0, 212, 170, 0.3);
+          font-weight: 700;
         }
       `}</style>
     </div>
