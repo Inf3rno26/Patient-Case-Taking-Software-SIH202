@@ -6,6 +6,7 @@ import {
   User,
   CreditCard,
   Phone,
+  Mail,
   ArrowRight,
   UserPlus,
   Hash,
@@ -43,6 +44,7 @@ function RegisterContent() {
     age: "",
     gender: "",
     phone: "",
+    email: "",
   });
 
   useEffect(() => {
@@ -76,6 +78,7 @@ function RegisterContent() {
             age: "45",
             gender: "male",
             phone: "9876543210",
+            email: "rajesh.kumar@abdm.gov.in",
             abhaAddress: form.abhaId + "@abdm",
             // Linked health records from ABDM
             lastVisit: { date: "12 Aug 2026", hospital: "AIIMS New Delhi", dept: "Endocrinology" },
@@ -92,6 +95,7 @@ function RegisterContent() {
             age: mockRecords.age,
             gender: mockRecords.gender,
             phone: mockRecords.phone,
+            email: mockRecords.email,
           }));
         }, 2200);
       }, 1000);
@@ -99,18 +103,33 @@ function RegisterContent() {
   };
 
   const handleProceed = () => {
-    if (!form.name || !form.age || !form.gender) return;
+    if (
+      !form.name?.trim() ||
+      !form.age ||
+      !form.gender ||
+      !form.phone?.trim() ||
+      form.phone.trim().length < 10 ||
+      !form.email?.trim() ||
+      !form.email.includes("@")
+    ) {
+      return;
+    }
     setShowConsent(true);
   };
 
   const handleConsentAccept = (consentData) => {
-    const session = startNewSession();
+    const activeLang =
+      (typeof window !== "undefined" ? localStorage.getItem("medikiosk_language") : null) ||
+      language ||
+      "en-IN";
+    startNewSession(activeLang);
     updatePatient({
       abhaId: form.abhaId || null,
       name: form.name,
       age: parseInt(form.age),
       gender: form.gender,
-      phone: form.phone,
+      phone: form.phone.trim(),
+      email: form.email.trim(),
     });
     updateConsent(consentData);
     setShowConsent(false);
@@ -260,7 +279,9 @@ function RegisterContent() {
                         <User size={32} />
                         <div>
                           <h3>{form.name}</h3>
-                          <p>Age: {form.age} | Gender: {form.gender} | Phone: {form.phone}</p>
+                          <p>
+                            Age: {form.age} | Gender: {form.gender} | Phone: {form.phone} | Email: {form.email}
+                          </p>
                           <p style={{ fontSize: "0.72rem", color: "var(--color-accent-primary)" }}>ABHA: {abhaRecords.abhaAddress}</p>
                         </div>
                       </div>
@@ -352,25 +373,26 @@ function RegisterContent() {
               <div className="form-container animate-fade-in-up">
                 <GlassCard hoverable={false}>
                   <div className="form-group">
-                    <label>
-                      <User size={16} /> Full Name / पूरा नाम
+                    <label htmlFor="name-input">
+                      <User size={16} /> Full Name / पूरा नाम <span style={{ color: "#ff4757", fontWeight: 700 }}>*</span>
                     </label>
                     <input
                       type="text"
                       className="input-field input-large"
-                      placeholder="Enter your name"
+                      placeholder="Enter full name"
                       value={form.name}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, name: e.target.value }))
                       }
                       id="name-input"
+                      required
                     />
                   </div>
 
                   <div className="form-row">
                     <div className="form-group age-group-container">
                       <label htmlFor="age-input">
-                        <Calendar size={16} /> Age / उम्र (in Years / वर्ष)
+                        <Calendar size={16} /> Age / उम्र (in Years / वर्ष) <span style={{ color: "#ff4757", fontWeight: 700 }}>*</span>
                       </label>
                       <div className="age-stepper-box">
                         <button
@@ -440,7 +462,7 @@ function RegisterContent() {
 
                     <div className="form-group gender-group-container">
                       <label>
-                        <UserCheck size={16} /> Gender / लिंग
+                        <UserCheck size={16} /> Gender / लिंग <span style={{ color: "#ff4757", fontWeight: 700 }}>*</span>
                       </label>
                       <div className="gender-cards-grid">
                         {[
@@ -471,25 +493,64 @@ function RegisterContent() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      <Phone size={16} /> Phone (Optional)
+                    <label htmlFor="phone-input">
+                      <Phone size={16} /> Phone Number / फ़ोन नंबर <span style={{ color: "#ff4757", fontWeight: 700 }}>* (Mandatory)</span>
                     </label>
                     <input
                       type="tel"
                       className="input-field input-large"
-                      placeholder="Mobile number"
+                      placeholder="10-digit mobile number (e.g. 9876543210)"
                       value={form.phone}
+                      maxLength={10}
                       onChange={(e) =>
-                        setForm((p) => ({ ...p, phone: e.target.value }))
+                        setForm((p) => ({ ...p, phone: e.target.value.replace(/[^0-9]/g, "").slice(0, 10) }))
                       }
                       id="phone-input"
+                      required
                     />
+                    <span style={{ fontSize: "0.74rem", color: "var(--color-text-muted)", marginTop: 4, display: "block" }}>
+                      Used for SMS OPD token updates &amp; prescription alerts
+                    </span>
                   </div>
+
+                  <div className="form-group">
+                    <label htmlFor="email-input">
+                      <Mail size={16} /> Email Address / ईमेल पता <span style={{ color: "#ff4757", fontWeight: 700 }}>* (Mandatory)</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="input-field input-large"
+                      placeholder="Enter email address (e.g. name@example.com)"
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, email: e.target.value.trim() }))
+                      }
+                      id="email-input"
+                      required
+                    />
+                    <span style={{ fontSize: "0.74rem", color: "var(--color-text-muted)", marginTop: 4, display: "block" }}>
+                      Used to send clinical summary &amp; lab referrals directly to you
+                    </span>
+                  </div>
+
+                  {(!form.name?.trim() || !form.age || !form.gender || !form.phone?.trim() || form.phone.trim().length < 10 || !form.email?.trim() || !form.email.includes("@")) && (
+                    <div style={{ fontSize: "0.78rem", color: "#ffaa00", background: "rgba(255, 170, 0, 0.08)", border: "1px solid rgba(255, 170, 0, 0.2)", padding: "8px 12px", borderRadius: 8, marginTop: 12 }}>
+                      * All fields (Name, Age, Gender, 10-digit Phone, Valid Email) are mandatory to proceed.
+                    </div>
+                  )}
 
                   <button
                     className="btn-primary btn-large btn-touch"
                     onClick={handleProceed}
-                    disabled={!form.name || !form.age || !form.gender}
+                    disabled={
+                      !form.name?.trim() ||
+                      !form.age ||
+                      !form.gender ||
+                      !form.phone?.trim() ||
+                      form.phone.trim().length < 10 ||
+                      !form.email?.trim() ||
+                      !form.email.includes("@")
+                    }
                     id="new-patient-proceed-btn"
                     style={{ width: "100%", marginTop: 16 }}
                   >
@@ -513,7 +574,11 @@ function RegisterContent() {
         {/* Consent Modal */}
         {showConsent && (
           <ConsentModal
-            language={language || "en-IN"}
+            language={
+              (typeof window !== "undefined" ? localStorage.getItem("medikiosk_language") : null) ||
+              language ||
+              "en-IN"
+            }
             onAccept={handleConsentAccept}
             onDecline={() => setShowConsent(false)}
           />

@@ -20,6 +20,9 @@ import {
   Bot,
   CheckCircle2,
   X,
+  User,
+  Phone,
+  Mail,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -30,7 +33,13 @@ import InterviewProgress from "@/components/InterviewProgress";
 import RedFlagAlert from "@/components/RedFlagAlert";
 import BodyMap from "@/components/BodyMap";
 import { usePatient } from "@/context/PatientContext";
-import { speakText, stopSpeech, isSpeechSpeaking } from "@/lib/languages";
+import {
+  speakText,
+  stopSpeech,
+  isSpeechSpeaking,
+  getInitialGreeting,
+  getInitialOptions,
+} from "@/lib/languages";
 
 function InterviewContent() {
   const router = useRouter();
@@ -42,6 +51,12 @@ function InterviewContent() {
     updateSession,
     addRedFlag,
   } = usePatient();
+
+  const activeLanguage =
+    session?.language ||
+    (typeof window !== "undefined" ? localStorage.getItem("medikiosk_language") : null) ||
+    language ||
+    "en-IN";
 
   const [messages, setMessages] = useState([]);
   const [currentOptions, setCurrentOptions] = useState([]);
@@ -70,7 +85,11 @@ function InterviewContent() {
   useEffect(() => {
     setMounted(true);
     if (!session) {
-      startNewSession();
+      const activeLang =
+        (typeof window !== "undefined" ? localStorage.getItem("medikiosk_language") : null) ||
+        language ||
+        "en-IN";
+      startNewSession(activeLang);
     }
   }, []);
 
@@ -92,7 +111,7 @@ function InterviewContent() {
       setIsAiSpeaking(true);
       if (index !== null) setSpeakingMsgIndex(index);
 
-      speakText(text, language || "en-IN", {
+      speakText(text, activeLanguage, {
         onStart: () => {
           setIsAiSpeaking(true);
           if (index !== null) setSpeakingMsgIndex(index);
@@ -112,37 +131,23 @@ function InterviewContent() {
         },
       });
     },
-    [ttsMuted, language, handsFree, isComplete]
+    [ttsMuted, activeLanguage, handsFree, isComplete]
   );
 
-  // Initial greeting
+  // Initial greeting in patient's preferred language
   useEffect(() => {
     if (!mounted) return;
 
-    const greeting =
-      language === "hi-IN"
-        ? "नमस्ते! मैं MediKiosk AI हूँ। आज आप अस्पताल क्यों आए हैं? आप बोलकर या नीचे दिए विकल्पों से बता सकते हैं।"
-        : "Hello! I am MediKiosk AI. What brings you to the hospital today? You can speak or tap an option below.";
-
-    const initialOptions = [
-      { text: language === "hi-IN" ? "बुखार" : "Fever" },
-      { text: language === "hi-IN" ? "सिर दर्द" : "Headache" },
-      { text: language === "hi-IN" ? "पेट दर्द" : "Stomach pain" },
-      { text: language === "hi-IN" ? "खांसी / जुकाम" : "Cough / Cold" },
-      { text: language === "hi-IN" ? "सीने में दर्द" : "Chest pain" },
-      { text: language === "hi-IN" ? "शरीर में दर्द" : "Body pain" },
-      { text: language === "hi-IN" ? "चोट" : "Injury" },
-      { text: language === "hi-IN" ? "सामान्य जांच" : "General checkup" },
-      { text: language === "hi-IN" ? "अन्य" : "Other" },
-    ];
+    const greeting = getInitialGreeting(activeLanguage);
+    const initialOptions = getInitialOptions(activeLanguage);
 
     setMessages([{ role: "ai", text: greeting }]);
     setCurrentOptions(initialOptions);
     setInputMode("options");
 
-    // Speak the greeting
+    // Speak the greeting in patient's chosen language
     setTimeout(() => handleSpeak(greeting, 0), 500);
-  }, [mounted, language, handleSpeak]);
+  }, [mounted, activeLanguage, handleSpeak]);
 
   const sendMessage = useCallback(
     async (messageText) => {
@@ -185,7 +190,7 @@ function InterviewContent() {
               role: m.role,
               text: m.text,
             })),
-            language: language || "en-IN",
+            language: activeLanguage,
             isAyush,
             currentSection,
           }),
@@ -196,7 +201,7 @@ function InterviewContent() {
         const data = await response.json();
 
         // Add AI response with language guarantee
-        const isEnglish = !language || language === "en" || language.startsWith("en");
+        const isEnglish = activeLanguage === "en" || activeLanguage.startsWith("en");
         let aiText = data.response || data.response_english || "I understand. Let me continue.";
         if (isEnglish && /[\u0900-\u097F]/.test(aiText) && data.response_english) {
           aiText = data.response_english;
@@ -370,6 +375,49 @@ function InterviewContent() {
         <div className="interview-container">
           {/* Progress */}
           <div className="interview-header">
+            {session?.patient?.name ? (
+              <div className="interview-patient-bar animate-fade-in">
+                <span className="patient-bar-item">
+                  <User size={13} style={{ color: "var(--color-accent-primary)" }} />
+                  <strong>{session.patient.name}</strong>
+                  {session.patient.age ? ` (${session.patient.age}y${session.patient.gender ? ` / ${session.patient.gender}` : ""})` : ""}
+                </span>
+                {session.patient.phone && (
+                  <span className="patient-bar-item">
+                    <Phone size={12} style={{ color: "var(--color-accent-secondary)" }} />
+                    {session.patient.phone}
+                  </span>
+                )}
+                {session.patient.email && (
+                  <span className="patient-bar-item">
+                    <Mail size={12} style={{ color: "var(--color-accent-primary)" }} />
+                    {session.patient.email}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="interview-patient-bar unregistered animate-fade-in">
+                <span className="patient-bar-item">
+                  <User size={13} style={{ color: "var(--color-text-muted)" }} />
+                  <span style={{ color: "var(--color-text-muted)" }}>Walk-in Patient</span>
+                </span>
+                <button
+                  onClick={() => router.push("/register")}
+                  type="button"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-accent-primary)",
+                    fontSize: "0.76rem",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    padding: 0,
+                  }}
+                >
+                  + Add Details (Phone / Email)
+                </button>
+              </div>
+            )}
             <InterviewProgress currentSection={currentSection} progress={progress} />
             
             <div className="interview-controls">
@@ -563,7 +611,7 @@ function InterviewContent() {
                 </div>
                 <BodyMap
                   onLocationSelect={handleBodyMapConfirm}
-                  language={language}
+                  language={activeLanguage}
                 />
               </div>
             )}
@@ -592,7 +640,7 @@ function InterviewContent() {
                     ref={otherInputRef}
                     type="text"
                     className="input-field input-large"
-                    placeholder={language?.startsWith("hi") ? "यहाँ अपनी समस्या लिखें..." : "Describe your symptom or concern..."}
+                    placeholder={activeLanguage.startsWith("hi") ? "यहाँ अपनी समस्या लिखें..." : "Describe your symptom or concern..."}
                     value={otherInput}
                     onChange={(e) => setOtherInput(e.target.value)}
                     id="other-input-field"
@@ -614,7 +662,7 @@ function InterviewContent() {
             {inputMode === "voice" && !isComplete && (
               <div className="voice-section animate-fade-in">
                 <VoiceRecorder
-                  language={language || "en-IN"}
+                  language={activeLanguage}
                   onTranscript={sendMessage}
                   disabled={isLoading}
                   autoListen={autoListenTick > 0}
@@ -631,7 +679,7 @@ function InterviewContent() {
                 <input
                   type="text"
                   className="input-field input-large"
-                  placeholder={language?.startsWith("hi") ? "यहाँ अपना उत्तर लिखें..." : "Type your medical response here..."}
+                  placeholder={activeLanguage.startsWith("hi") ? "यहाँ अपना उत्तर लिखें..." : "Type your medical response here..."}
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
                   disabled={isLoading}
@@ -735,6 +783,30 @@ function InterviewContent() {
           padding: 6px 0 10px;
           border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
+        }
+
+        .interview-patient-bar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          padding: 6px 12px;
+          margin-bottom: 8px;
+          background: rgba(0, 212, 170, 0.05);
+          border: 1px solid rgba(0, 212, 170, 0.15);
+          border-radius: var(--radius-md);
+          font-size: 0.78rem;
+          color: var(--color-text-secondary);
+        }
+
+        .patient-bar-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .patient-bar-item strong {
+          color: var(--color-text-primary);
         }
 
         .interview-controls {

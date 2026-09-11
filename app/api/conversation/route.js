@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateContentWithFallback } from "@/lib/gemini";
 import { buildGroundedSystemPrompt } from "@/lib/prompts";
+import { getInitialGreeting, getInitialOptions } from "@/lib/languages";
 
 // Strip emoji/icon characters from a string
 function stripEmoji(str) {
@@ -66,7 +67,6 @@ export async function POST(request) {
       const systemPrompt = buildGroundedSystemPrompt(language, currentSection, isAyush, complaintHint);
 
       const isEnglish = !language || language === "en" || language.startsWith("en");
-      const isHindi = language === "hi" || language.startsWith("hi");
 
       // Build chat history for context
       const chatHistory = conversationHistory.map((msg) => ({
@@ -74,27 +74,8 @@ export async function POST(request) {
         parts: [{ text: msg.text }],
       }));
 
-      const initialGreeting = isEnglish
-        ? "Hello! I am MediKiosk AI. What brings you to the hospital today?"
-        : isHindi
-        ? "नमस्ते! मैं MediKiosk AI हूँ। आज आप अस्पताल क्यों आए हैं?"
-        : "Hello! I am MediKiosk AI. What brings you to the hospital today?";
-
-      const initialOptions = isEnglish
-        ? [
-            { text: "Fever", text_english: "Fever" },
-            { text: "Pain", text_english: "Pain" },
-            { text: "Cough", text_english: "Cough" },
-            { text: "General checkup", text_english: "General checkup" },
-            { text: "Other", text_english: "Other" },
-          ]
-        : [
-            { text: "बुखार", text_english: "Fever" },
-            { text: "दर्द", text_english: "Pain" },
-            { text: "खांसी", text_english: "Cough" },
-            { text: "सामान्य जांच", text_english: "General checkup" },
-            { text: "अन्य", text_english: "Other" },
-          ];
+      const initialGreeting = getInitialGreeting(language);
+      const initialOptions = getInitialOptions(language);
 
       // Use generateContentWithFallback for consistent model failover
       const { result } = await generateContentWithFallback(

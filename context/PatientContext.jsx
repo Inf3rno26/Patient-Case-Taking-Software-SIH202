@@ -16,6 +16,7 @@ const DEMO_SESSION = {
     age: 52,
     gender: "female",
     phone: "9876543210",
+    email: "sunita.sharma@example.com",
     abhaId: "91-2345-6789-0123",
   },
   consent: {
@@ -109,10 +110,20 @@ export function PatientProvider({ children }) {
     }
   }, [language]);
 
-  const startNewSession = useCallback(() => {
+  const startNewSession = useCallback((lang = null) => {
+    const activeLang =
+      lang ||
+      (typeof window !== "undefined" ? localStorage.getItem("medikiosk_language") : null) ||
+      language ||
+      "en-IN";
     const newSession = createEmptySession();
-    newSession.language = language || "en-IN";
+    newSession.language = activeLang;
+    setLanguage(activeLang);
     setSession(newSession);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("medikiosk_session", JSON.stringify(newSession));
+      localStorage.setItem("medikiosk_language", activeLang);
+    }
     return newSession;
   }, [language]);
 

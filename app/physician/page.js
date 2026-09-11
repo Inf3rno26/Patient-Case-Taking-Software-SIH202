@@ -25,11 +25,18 @@ import {
   User,
   Search,
   Info,
+  Calendar,
+  Bell,
+  TrendingUp,
+  Check,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
 import DrugInteractionPanel from "@/components/DrugInteractionPanel";
 import RiskScoreCard from "@/components/RiskScoreCard";
+import PatientRecoveryGraph from "@/components/PatientRecoveryGraph";
+import AppointmentReminderModal from "@/components/AppointmentReminderModal";
+import { generateSampleRecoveryData, calculateReminderDate } from "@/lib/reminders";
 
 // Demo patient queue (baseline — always shown)
 const DEMO_PATIENTS = [
@@ -38,12 +45,27 @@ const DEMO_PATIENTS = [
     name: "Rajesh Kumar",
     age: 45,
     gender: "M",
+    phone: "+91 98765 43210",
+    email: "rajesh.kumar@example.com",
     department: "General Medicine",
     priority: "routine",
     chiefComplaint: "Fever and body pain for 3 days",
     status: "waiting",
     time: "09:15 AM",
     isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 7 * 86400000).toISOString()),
+      department: "General Medicine",
+      doctorName: "Dr. Sharma, MD",
+      remarks: "Patient showing substantial defervescence. Continue hydration and finish antibiotic regimen. Repeat CBC if fever recurs.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: {
+        sms: true,
+        email: true,
+        push: true,
+      },
+    },
     summary: {
       chiefComplaint: "High-grade fever with body aches for 3 days",
       hpi: "Patient reports continuous fever (100-102°F), generalized body pain, mild headache, and decreased appetite. No rash, no joint swelling. Took Paracetamol with partial relief.",
@@ -60,12 +82,27 @@ const DEMO_PATIENTS = [
     name: "Sunita Devi",
     age: 62,
     gender: "F",
+    phone: "+91 94123 89012",
+    email: "sunita.devi62@gmail.com",
     department: "Cardiology",
     priority: "urgent",
     chiefComplaint: "Chest pain on exertion for 1 week",
     status: "waiting",
     time: "09:22 AM",
     isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 5 * 86400000).toISOString()),
+      department: "Cardiology",
+      doctorName: "Dr. A. K. Sen, DM",
+      remarks: "Follow-up for post-angina treadmill stress test review. BP well controlled. Discontinue NSAIDs, continue statin.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: {
+        sms: true,
+        email: true,
+        push: true,
+      },
+    },
     summary: {
       chiefComplaint: "Retrosternal chest pain on exertion × 1 week",
       hpi: "Patient reports squeezing chest pain on climbing stairs, radiating to left arm, relieved by rest (5-10 min). No associated breathlessness at rest. Severity 6/10. No sweating or syncope.",
@@ -82,12 +119,27 @@ const DEMO_PATIENTS = [
     name: "Mohammed Irfan",
     age: 28,
     gender: "M",
+    phone: "+91 97654 32109",
+    email: "irfan.md28@outlook.com",
     department: "General Medicine",
     priority: "routine",
     chiefComplaint: "Persistent cough for 2 weeks",
     status: "completed",
     time: "08:50 AM",
     isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 14 * 86400000).toISOString()),
+      department: "General Medicine / Pulmonology",
+      doctorName: "Dr. Sharma, MD",
+      remarks: "Sputum smear negative for AFB. Cough improved by 85%. Advised tobacco cessation counselling and SOS bronchodilator.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: {
+        sms: true,
+        email: true,
+        push: true,
+      },
+    },
     summary: {
       chiefComplaint: "Productive cough with yellowish sputum × 2 weeks",
       hpi: "Patient reports cough with thick yellow sputum, worse in morning. Associated low-grade fever. No hemoptysis, no breathlessness, no weight loss, no night sweats. No TB contacts.",
@@ -116,6 +168,8 @@ function sessionToPatient(session) {
     name: session.patient.name,
     age: session.patient.age || "—",
     gender: session.patient.gender ? session.patient.gender[0].toUpperCase() : "—",
+    phone: session.patient.phone || "—",
+    email: session.patient.email || "—",
     department: session.summary?.suggestedDepartment || "General Medicine",
     priority: session.summary?.priorityLevel || "routine",
     chiefComplaint:
@@ -126,6 +180,7 @@ function sessionToPatient(session) {
     status: "waiting",
     time: arriveTime,
     isLive: true,
+    followUp: session.followUp || null,
     summary: {
       chiefComplaint:
         s?.chiefComplaint ||
@@ -204,6 +259,11 @@ export default function PhysicianPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
+
+  // Tab navigation in patient detail: "summary" | "recovery"
+  const [activeTab, setActiveTab] = useState("summary");
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [followUpSuccessMsg, setFollowUpSuccessMsg] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -285,6 +345,69 @@ export default function PhysicianPage() {
   const cancelEdit = () => {
     setIsEditing(false);
     setEditDraft(null);
+  };
+
+  /** Update physician remarks for the patient */
+  const handleUpdateRemarks = (patientId, remarks) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        const updatedFollowUp = { ...(p.followUp || {}), remarks };
+        return { ...p, followUp: updatedFollowUp };
+      })
+    );
+    setSelectedPatient((prev) => {
+      if (prev?.id !== patientId) return prev;
+      return { ...prev, followUp: { ...(prev.followUp || {}), remarks } };
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("medikiosk_session");
+        if (raw) {
+          const session = JSON.parse(raw);
+          if (session.id === patientId || patientId === "MK-LIVE") {
+            session.followUp = { ...(session.followUp || {}), remarks };
+            localStorage.setItem("medikiosk_session", JSON.stringify(session));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to sync remarks to session", e);
+      }
+    }
+  };
+
+  /** Schedule follow-up with automated 2-day pre-appointment alert */
+  const handleScheduleFollowUp = (followUpData) => {
+    if (!selectedPatient) return;
+    setPatients((prev) =>
+      prev.map((p) => (p.id === selectedPatient.id ? { ...p, followUp: followUpData } : p))
+    );
+    setSelectedPatient((prev) => ({ ...prev, followUp: followUpData }));
+    const reminderFormatted = new Date(followUpData.reminderDate).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    setFollowUpSuccessMsg(
+      `Checkup scheduled for ${new Date(followUpData.appointmentDate).toLocaleDateString("en-IN")}. 2-Day Pre-Alert will be sent on ${reminderFormatted} via SMS, Email & Push!`
+    );
+    setTimeout(() => setFollowUpSuccessMsg(""), 7000);
+
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("medikiosk_session");
+        if (raw) {
+          const session = JSON.parse(raw);
+          if (session.id === selectedPatient.id || selectedPatient.id === "MK-LIVE") {
+            session.followUp = followUpData;
+            localStorage.setItem("medikiosk_session", JSON.stringify(session));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to sync follow-up to session", e);
+      }
+    }
   };
 
   /** Extract medication list from patient summary for drug interaction check */
@@ -515,6 +638,8 @@ export default function PhysicianPage() {
                         </div>
                         <p>
                           {selectedPatient.age}y / {selectedPatient.gender} •{" "}
+                          {selectedPatient.phone && selectedPatient.phone !== "—" ? `Ph: ${selectedPatient.phone} • ` : ""}
+                          {selectedPatient.email && selectedPatient.email !== "—" ? `${selectedPatient.email} • ` : ""}
                           {selectedPatient.department} • ID: {selectedPatient.id}
                         </p>
                       </div>
@@ -526,8 +651,133 @@ export default function PhysicianPage() {
                       </div>
                     </div>
 
-                    {/* --- VIEW MODE --- */}
+                    {/* Follow-up / Action notification alert banner */}
+                    {followUpSuccessMsg && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "10px 14px",
+                          marginBottom: 16,
+                          borderRadius: "var(--radius-md)",
+                          background: "rgba(0, 212, 170, 0.12)",
+                          border: "1px solid rgba(0, 212, 170, 0.35)",
+                          color: "var(--color-accent-primary)",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Check size={18} />
+                        <span>{followUpSuccessMsg}</span>
+                      </div>
+                    )}
+
+                    {/* Navigation Tabs between Case Summary and Recovery Tracking */}
                     {!isEditing && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          borderBottom: "1px solid var(--color-border)",
+                          paddingBottom: 12,
+                          marginBottom: 16,
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={() => setActiveTab("summary")}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "8px 16px",
+                              borderRadius: "var(--radius-full)",
+                              fontSize: "0.82rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              background:
+                                activeTab === "summary"
+                                  ? "var(--color-accent-primary)"
+                                  : "rgba(255, 255, 255, 0.05)",
+                              color: activeTab === "summary" ? "#000" : "var(--color-text-secondary)",
+                              border:
+                                activeTab === "summary"
+                                  ? "1px solid var(--color-accent-primary)"
+                                  : "1px solid var(--color-border)",
+                            }}
+                          >
+                            <Stethoscope size={14} /> Clinical Summary
+                          </button>
+                          <button
+                            onClick={() => setActiveTab("recovery")}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "8px 16px",
+                              borderRadius: "var(--radius-full)",
+                              fontSize: "0.82rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              background:
+                                activeTab === "recovery"
+                                  ? "rgba(124, 92, 252, 0.2)"
+                                  : "rgba(255, 255, 255, 0.05)",
+                              color: activeTab === "recovery" ? "#bda5ff" : "var(--color-text-secondary)",
+                              border:
+                                activeTab === "recovery"
+                                  ? "1px solid rgba(124, 92, 252, 0.5)"
+                                  : "1px solid var(--color-border)",
+                            }}
+                          >
+                            <TrendingUp size={14} /> Recovery Trajectory &amp; Remarks
+                            <span
+                              style={{
+                                fontSize: "0.68rem",
+                                padding: "1px 6px",
+                                borderRadius: 10,
+                                background: "rgba(0, 212, 170, 0.2)",
+                                color: "var(--color-accent-primary)",
+                                marginLeft: 4,
+                              }}
+                            >
+                              Before vs Now
+                            </span>
+                          </button>
+                        </div>
+
+                        {/* Top quick schedule button */}
+                        <button
+                          onClick={() => setIsReminderModalOpen(true)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "8px 14px",
+                            borderRadius: "var(--radius-full)",
+                            background: "rgba(0, 212, 170, 0.1)",
+                            border: "1px solid rgba(0, 212, 170, 0.35)",
+                            color: "var(--color-accent-primary)",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <Calendar size={14} />
+                          {selectedPatient.followUp ? "Reschedule / 2-Day Alert" : "Schedule Follow-up"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* --- VIEW MODE: SUMMARY TAB --- */}
+                    {!isEditing && activeTab === "summary" && (
                       <>
                         {SUMMARY_FIELDS.map(({ key, label, icon: IconComponent }) => (
                           <div key={key} className="summary-section" style={{ marginTop: 12 }}>
@@ -581,6 +831,26 @@ export default function PhysicianPage() {
                             Reject
                           </button>
                           <button
+                            className="btn-touch"
+                            onClick={() => setIsReminderModalOpen(true)}
+                            style={{
+                              background: "rgba(0, 212, 170, 0.12)",
+                              border: "1px solid rgba(0, 212, 170, 0.4)",
+                              color: "var(--color-accent-primary)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "10px 18px",
+                              borderRadius: "var(--radius-md)",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                            id="physician-schedule-followup-btn"
+                          >
+                            <Bell size={18} />
+                            Schedule Follow-up (2-Day Alert)
+                          </button>
+                          <button
                             className="fhir-export-btn"
                             onClick={() => handleFHIRExport(selectedPatient)}
                             id="physician-fhir-export-btn"
@@ -591,6 +861,92 @@ export default function PhysicianPage() {
                           </button>
                         </div>
                       </>
+                    )}
+
+                    {/* --- VIEW MODE: RECOVERY & REMARKS TAB --- */}
+                    {!isEditing && activeTab === "recovery" && (
+                      <div className="recovery-tab-content animate-fade-in" style={{ marginTop: 16 }}>
+                        {selectedPatient.followUp && (
+                          <div
+                            style={{
+                              background: "rgba(255, 255, 255, 0.03)",
+                              border: "1px solid rgba(0, 212, 170, 0.3)",
+                              borderRadius: "var(--radius-lg)",
+                              padding: "16px 20px",
+                              marginBottom: 20,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              gap: 14,
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                <Calendar size={18} style={{ color: "var(--color-accent-primary)" }} />
+                                <strong style={{ color: "var(--color-text-primary)", fontSize: "0.95rem" }}>
+                                  Next Checkup: {new Date(selectedPatient.followUp.appointmentDate).toLocaleDateString("en-IN", {
+                                    weekday: "short",
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </strong>
+                                <span
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    padding: "2px 8px",
+                                    borderRadius: 12,
+                                    background: "rgba(0, 212, 170, 0.15)",
+                                    color: "var(--color-accent-primary)",
+                                    border: "1px solid rgba(0, 212, 170, 0.3)",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  2-Day Alert Armed
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
+                                Automated alert sent 2 days prior (
+                                <strong style={{ color: "var(--color-accent-warning)" }}>
+                                  {new Date(selectedPatient.followUp.reminderDate).toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </strong>
+                                ) to {selectedPatient.phone || "phone"} &amp; {selectedPatient.email || "email"}.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setIsReminderModalOpen(true)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "8px 16px",
+                                borderRadius: "var(--radius-md)",
+                                background: "rgba(124, 92, 252, 0.15)",
+                                border: "1px solid rgba(124, 92, 252, 0.4)",
+                                color: "#bda5ff",
+                                fontSize: "0.8rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Bell size={14} /> Reconfigure &amp; Test Alert
+                            </button>
+                          </div>
+                        )}
+
+                        <PatientRecoveryGraph
+                          patient={selectedPatient}
+                          complaint={selectedPatient.chiefComplaint}
+                          onUpdateRemarks={(newRemarks) =>
+                            handleUpdateRemarks(selectedPatient.id, newRemarks)
+                          }
+                        />
+                      </div>
                     )}
 
                     {/* --- EDIT MODE --- */}
@@ -692,6 +1048,16 @@ export default function PhysicianPage() {
           </div>
         </div>
       </div>
+
+      {/* Appointment Follow-up & 2-Day Pre-Appointment Reminder Modal */}
+      {selectedPatient && (
+        <AppointmentReminderModal
+          isOpen={isReminderModalOpen}
+          onClose={() => setIsReminderModalOpen(false)}
+          patient={selectedPatient}
+          onSchedule={handleScheduleFollowUp}
+        />
+      )}
 
       <style jsx>{`
         .phys-top {

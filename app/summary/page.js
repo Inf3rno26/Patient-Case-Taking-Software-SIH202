@@ -26,12 +26,20 @@ import {
   Clock,
   AlertCircle,
   Info,
+  Calendar,
+  Bell,
+  TrendingUp,
+  Smartphone,
+  Mail,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
 import LoadingPulse from "@/components/ui/LoadingPulse";
 import QRToken from "@/components/QRToken";
 import RiskScoreCard from "@/components/RiskScoreCard";
+import PatientRecoveryGraph from "@/components/PatientRecoveryGraph";
+import AppointmentReminderModal from "@/components/AppointmentReminderModal";
+import { calculateReminderDate } from "@/lib/reminders";
 import { usePatient } from "@/context/PatientContext";
 import { speakText } from "@/lib/languages";
 
@@ -46,6 +54,39 @@ export default function SummaryPage() {
   // Edit-in-place state
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState({});
+
+  // Follow-up & 2-Day Pre-Appointment Reminder State
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [showRecoveryTracking, setShowRecoveryTracking] = useState(false);
+  const [followUp, setFollowUp] = useState(null);
+
+  // Synchronize follow-up appointment & 2-day pre-appointment alert calculation
+  useEffect(() => {
+    if (session?.followUp) {
+      setFollowUp(session.followUp);
+    } else if (session?.patient?.name) {
+      const targetDate = new Date(Date.now() + 7 * 86400000).toISOString();
+      const defaultFollowUp = {
+        appointmentDate: targetDate,
+        reminderDate: calculateReminderDate(targetDate),
+        department: summary?.suggestedDepartment || "General Medicine",
+        doctorName: "Dr. Sharma, MD (OPD)",
+        remarks: "Review clinical recovery, symptom resolution, and medication compliance.",
+        reminderStatus: "scheduled_2_days_prior",
+        channels: {
+          sms: Boolean(session?.patient?.phone),
+          email: Boolean(session?.patient?.email),
+          push: true,
+        },
+      };
+      setFollowUp(defaultFollowUp);
+    }
+  }, [session, summary]);
+
+  const handleScheduleFollowUp = (newFollowUp) => {
+    setFollowUp(newFollowUp);
+    updateSession({ followUp: newFollowUp });
+  };
 
   // Submission & Security Wipe state
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -373,7 +414,7 @@ export default function SummaryPage() {
                 border: `1px solid ${isWiped ? 'rgba(0, 212, 170, 0.3)' : 'rgba(255, 179, 71, 0.3)'}`,
                 borderRadius: '12px',
                 padding: '14px 18px',
-                marginBottom: 24,
+                marginBottom: 20,
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
@@ -398,6 +439,61 @@ export default function SummaryPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Follow-up & 2-Day Pre-Appointment Alert Summary */}
+              {followUp && (
+                <div className="animate-fade-in-up delay-2" style={{
+                  background: 'linear-gradient(135deg, rgba(0, 212, 170, 0.08), rgba(124, 92, 252, 0.08))',
+                  border: '1px solid rgba(0, 212, 170, 0.35)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: 24,
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 14
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(0, 212, 170, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-primary)', flexShrink: 0 }}>
+                      <Calendar size={22} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <strong style={{ color: 'var(--color-text-primary)', fontSize: '0.92rem' }}>
+                          Next Doctor Checkup: {new Date(followUp.appointmentDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                        </strong>
+                        <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(0, 212, 170, 0.2)', color: 'var(--color-accent-primary)', fontWeight: 700, border: '1px solid rgba(0, 212, 170, 0.35)' }}>
+                          2-Day Alert Armed
+                        </span>
+                      </div>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                        A reminder push notification + SMS to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.phone || "your phone"}</strong> and email to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.email || "your email"}</strong> will trigger on <strong style={{ color: 'var(--color-accent-warning)' }}>{new Date(followUp.reminderDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</strong> (exact 48 hrs before).
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsReminderModalOpen(true)}
+                    style={{
+                      background: 'rgba(0, 212, 170, 0.15)',
+                      border: '1px solid rgba(0, 212, 170, 0.5)',
+                      color: 'var(--color-accent-primary)',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                    id="submitted-test-reminder-btn"
+                  >
+                    <Bell size={14} /> Test Push Notification
+                  </button>
+                </div>
+              )}
 
               <div className="success-details animate-fade-in-up delay-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '20px', marginBottom: 28 }}>
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
@@ -466,6 +562,14 @@ export default function SummaryPage() {
             </GlassCard>
           </div>
         </div>
+
+        {/* Appointment Follow-up & 2-Day Pre-Appointment Reminder Modal */}
+        <AppointmentReminderModal
+          isOpen={isReminderModalOpen}
+          onClose={() => setIsReminderModalOpen(false)}
+          patient={session?.patient}
+          onSchedule={handleScheduleFollowUp}
+        />
       </>
     );
   }
@@ -511,6 +615,8 @@ export default function SummaryPage() {
                       <p style={{ color: 'inherit' }}>
                         {session?.patient?.age ? `${session.patient.age}y` : ""}{" "}
                         {session?.patient?.gender ? `/ ${session.patient.gender}` : ""}{" "}
+                        {session?.patient?.phone ? `• Ph: ${session.patient.phone}` : ""}{" "}
+                        {session?.patient?.email ? `• ${session.patient.email}` : ""}{" "}
                         {session?.patient?.abhaId ? `• ABHA: ${session.patient.abhaId}` : ""}
                       </p>
                     </div>
@@ -562,6 +668,132 @@ export default function SummaryPage() {
                   </button>
                 </div>
               </GlassCard>
+
+              {/* Follow-up Checkup & 2-Day Pre-Appointment Reminder Card */}
+              {followUp && !isEditing && (
+                <GlassCard hoverable={false} className="no-print" style={{ marginBottom: 20, border: '1px solid rgba(0, 212, 170, 0.35)', background: 'linear-gradient(135deg, rgba(0, 212, 170, 0.05), rgba(124, 92, 252, 0.05))' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ display: 'inline-flex', padding: 6, borderRadius: '50%', background: 'rgba(0, 212, 170, 0.15)', color: 'var(--color-accent-primary)' }}>
+                          <Calendar size={18} />
+                        </span>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-text-primary)' }}>
+                          Next Checkup &amp; Automated Follow-up Reminder
+                        </h3>
+                        <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: 12, background: 'rgba(0, 212, 170, 0.2)', color: 'var(--color-accent-primary)', fontWeight: 700, border: '1px solid rgba(0, 212, 170, 0.4)' }}>
+                          2-Day Pre-Alert Active
+                        </span>
+                      </div>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                        Scheduled Checkup: <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(followUp.appointmentDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong> • {followUp.department || "OPD"}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => setShowRecoveryTracking(!showRecoveryTracking)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '8px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          background: showRecoveryTracking ? 'rgba(124, 92, 252, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(124, 92, 252, 0.4)',
+                          color: '#c4b5fd',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                        id="toggle-recovery-graph-btn"
+                      >
+                        <TrendingUp size={14} />
+                        {showRecoveryTracking ? "Hide Recovery Graph" : "View Recovery Graph"}
+                      </button>
+                      <button
+                        onClick={() => setIsReminderModalOpen(true)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '8px 16px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'linear-gradient(135deg, rgba(0, 212, 170, 0.2), rgba(0, 212, 170, 0.1))',
+                          border: '1px solid rgba(0, 212, 170, 0.5)',
+                          color: 'var(--color-accent-primary)',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                        id="open-reminder-settings-btn"
+                      >
+                        <Bell size={14} />
+                        Manage Alert &amp; Test Push
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2-Day Pre-Alert Callout Box */}
+                  <div style={{
+                    marginTop: 14,
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Bell size={18} style={{ color: 'var(--color-accent-warning)', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          Automated 2-Day Pre-Notification Armed
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          A reminder is automatically dispatched on <strong style={{ color: 'var(--color-accent-warning)' }}>{new Date(followUp.reminderDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</strong> (exact 48 hrs before visit).
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Smartphone size={12} style={{ color: 'var(--color-accent-primary)' }} />
+                        SMS: {session?.patient?.phone || "Linked phone"}
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Mail size={12} style={{ color: '#60a5fa' }} />
+                        Email: {session?.patient?.email || "Linked email"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Doctor Remarks preview if available */}
+                  {followUp.remarks && (
+                    <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(124, 92, 252, 0.08)', border: '1px solid rgba(124, 92, 252, 0.2)' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#bda5ff', fontWeight: 600, display: 'block', marginBottom: 2 }}>
+                        Doctor&apos;s Follow-up Instructions:
+                      </span>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                        &ldquo;{followUp.remarks}&rdquo;
+                      </p>
+                    </div>
+                  )}
+                </GlassCard>
+              )}
+
+              {/* Recovery & Symptoms Before vs Now Graph */}
+              {showRecoveryTracking && !isEditing && (
+                <div style={{ marginBottom: 20 }} className="animate-fade-in no-print">
+                  <PatientRecoveryGraph
+                    patient={session?.patient}
+                    complaint={summary?.summary?.chiefComplaint || session?.extractedHistory?.chiefComplaint}
+                  />
+                </div>
+              )}
 
               {/* AI Risk Score Card */}
               {riskPatientData && (
@@ -848,6 +1080,14 @@ export default function SummaryPage() {
           )}
         </div>
       </div>
+
+      {/* Appointment Follow-up & 2-Day Pre-Appointment Reminder Modal */}
+      <AppointmentReminderModal
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+        patient={session?.patient}
+        onSchedule={handleScheduleFollowUp}
+      />
 
       <style jsx>{`
         .patient-header-card {
