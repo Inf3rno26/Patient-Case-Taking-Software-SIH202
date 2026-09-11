@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, CheckCircle2, Pill, Loader2, ChevronDown, ChevronUp, Shield } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Pill, Loader2, ChevronDown, ChevronUp, Shield, AlertCircle, Info, Stethoscope } from "lucide-react";
 
 /**
  * DrugInteractionPanel — Auto-checks medications for interactions via Gemini AI
@@ -48,9 +48,9 @@ export default function DrugInteractionPanel({ medications = [], patientName }) 
   }, [medications, checkInteractions]);
 
   const severityConfig = {
-    SEVERE: { color: "#ff4757", bg: "rgba(255,71,87,0.08)", border: "rgba(255,71,87,0.3)", icon: "🚨", label: "SEVERE" },
-    MODERATE: { color: "#ffb347", bg: "rgba(255,179,71,0.08)", border: "rgba(255,179,71,0.3)", icon: "⚠️", label: "MODERATE" },
-    MILD: { color: "#4db8ff", bg: "rgba(77,184,255,0.08)", border: "rgba(77,184,255,0.3)", icon: "ℹ️", label: "MILD" },
+    SEVERE: { color: "#ff4757", bg: "rgba(255,71,87,0.08)", border: "rgba(255,71,87,0.3)", icon: AlertCircle, label: "SEVERE" },
+    MODERATE: { color: "#ffb347", bg: "rgba(255,179,71,0.08)", border: "rgba(255,179,71,0.3)", icon: AlertTriangle, label: "MODERATE" },
+    MILD: { color: "#4db8ff", bg: "rgba(77,184,255,0.08)", border: "rgba(77,184,255,0.3)", icon: Info, label: "MILD" },
   };
 
   const riskColor = result?.overallRisk === "HIGH" ? "#ff4757" : result?.overallRisk === "MODERATE" ? "#ffb347" : "#00d4aa";
@@ -137,8 +137,8 @@ export default function DrugInteractionPanel({ medications = [], patientName }) 
                         }}
                       >
                         <div className="interaction-header">
-                          <span className="severity-badge" style={{ color: cfg.color }}>
-                            {cfg.icon} {cfg.label}
+                          <span className="severity-badge" style={{ color: cfg.color, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {cfg.icon && <cfg.icon size={13} />} {cfg.label}
                           </span>
                           <div className="drug-pair">
                             <span className="drug-name">{interaction.drug1}</span>
@@ -147,8 +147,8 @@ export default function DrugInteractionPanel({ medications = [], patientName }) 
                           </div>
                         </div>
 
-                        <p className="interaction-effect" style={{ color: cfg.color }}>
-                          ⚡ {interaction.effect}
+                        <p className="interaction-effect" style={{ color: cfg.color, display: "flex", alignItems: "center", gap: 6 }}>
+                          <AlertTriangle size={14} /> {interaction.effect}
                         </p>
 
                         {interaction.mechanism && (
@@ -158,7 +158,10 @@ export default function DrugInteractionPanel({ medications = [], patientName }) 
                         )}
 
                         <div className="interaction-management">
-                          <strong>🩺 Management:</strong> {interaction.management}
+                          <strong style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Stethoscope size={13} /> Management:
+                          </strong>{" "}
+                          {interaction.management}
                         </div>
                       </div>
                     );

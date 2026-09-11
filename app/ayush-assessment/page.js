@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, RotateCcw, Leaf, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, RotateCcw, Leaf, Check, Activity } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
 import { usePatient } from "@/context/PatientContext";
@@ -21,9 +21,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How would you describe your body frame?",
     questionHi: "आपकी शारीरिक बनावट कैसी है?",
     options: [
-      { text: "Thin, light, joints visible", textHi: "दुबला-पतला, हड्डियाँ दिखती हैं", icon: "🦴", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Medium, well-proportioned", textHi: "मध्यम, सुडौल", icon: "🧍", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Large, heavy, broad frame", textHi: "भारी, मजबूत शरीर", icon: "💪", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Thin, light, joints visible", textHi: "दुबला-पतला, हड्डियाँ दिखती हैं", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Medium, well-proportioned", textHi: "मध्यम, सुडौल", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Large, heavy, broad frame", textHi: "भारी, मजबूत शरीर", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -32,9 +32,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How is your skin naturally?",
     questionHi: "आपकी त्वचा कैसी है?",
     options: [
-      { text: "Dry, rough, cold to touch", textHi: "रूखी, खुरदरी, ठंडी", icon: "🏜️", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Warm, oily, prone to rashes", textHi: "गर्म, तैलीय, दाने होते हैं", icon: "🌡️", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Thick, smooth, oily, glowing", textHi: "मोटी, चिकनी, चमकदार", icon: "✨", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Dry, rough, cold to touch", textHi: "रूखी, खुरदरी, ठंडी", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Warm, oily, prone to rashes", textHi: "गर्म, तैलीय, दाने होते हैं", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Thick, smooth, oily, glowing", textHi: "मोटी, चिकनी, चमकदार", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -43,9 +43,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How is your hair naturally?",
     questionHi: "आपके बाल कैसे हैं?",
     options: [
-      { text: "Dry, frizzy, breaks easily", textHi: "रूखे, उलझे, टूटते हैं", icon: "🌵", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Thin, oily, goes grey early", textHi: "पतले, तैलीय, जल्दी सफेद होते हैं", icon: "🔥", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Thick, lustrous, wavy, oily", textHi: "घने, चमकदार, लहराते हैं", icon: "🌊", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Dry, frizzy, breaks easily", textHi: "रूखे, उलझे, टूटते हैं", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Thin, oily, goes grey early", textHi: "पतले, तैलीय, जल्दी सफेद होते हैं", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Thick, lustrous, wavy, oily", textHi: "घने, चमकदार, लहराते हैं", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -54,9 +54,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How is your digestion and appetite?",
     questionHi: "आपकी पाचन शक्ति और भूख कैसी है?",
     options: [
-      { text: "Irregular — sometimes hungry, sometimes not", textHi: "अनिश्चित — कभी भूख कभी नहीं", icon: "🎲", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Strong — very hungry, can't skip meals", textHi: "तेज — बहुत भूख लगती है", icon: "🔥", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Slow — not very hungry, can skip meals", textHi: "धीमी — कम भूख लगती है", icon: "🐢", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Irregular — sometimes hungry, sometimes not", textHi: "अनिश्चित — कभी भूख कभी नहीं", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Strong — very hungry, can't skip meals", textHi: "तेज — बहुत भूख लगती है", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Slow — not very hungry, can skip meals", textHi: "धीमी — कम भूख लगती है", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -65,9 +65,9 @@ const PRAKRITI_QUESTIONS = [
     question: "What are your bowel habits like?",
     questionHi: "आपकी पेट साफ होने की आदत कैसी है?",
     options: [
-      { text: "Irregular, constipated, dry stools", textHi: "अनियमित, कब्ज, कठोर मल", icon: "🪨", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Regular, 1-2 times/day, loose sometimes", textHi: "नियमित, कभी-कभी पतला", icon: "✅", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Slow, once/day, heavy, formed stools", textHi: "एक बार, भारी, बंधे हुए", icon: "⚖️", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Irregular, constipated, dry stools", textHi: "अनियमित, कब्ज, कठोर मल", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Regular, 1-2 times/day, loose sometimes", textHi: "नियमित, कभी-कभी पतला", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Slow, once/day, heavy, formed stools", textHi: "एक बार, भारी, बंधे हुए", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -76,9 +76,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How would you describe your mind?",
     questionHi: "आपका मन कैसा रहता है?",
     options: [
-      { text: "Quick, creative, anxious, scattered", textHi: "तेज, रचनात्मक, चिंतित, बिखरा हुआ", icon: "💨", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Sharp, focused, competitive, critical", textHi: "तेज, केंद्रित, आलोचनात्मक", icon: "🎯", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Calm, steady, loving, slow to learn but remembers well", textHi: "शांत, स्थिर, प्रेमी, धीरे सीखता है", icon: "🌸", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Quick, creative, anxious, scattered", textHi: "तेज, रचनात्मक, चिंतित, बिखरा हुआ", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Sharp, focused, competitive, critical", textHi: "तेज, केंद्रित, आलोचनात्मक", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Calm, steady, loving, slow to learn but remembers well", textHi: "शांत, स्थिर, प्रेमी, धीरे सीखता है", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -87,9 +87,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How is your sleep?",
     questionHi: "आपकी नींद कैसी है?",
     options: [
-      { text: "Light, disturbed, less than 6 hours", textHi: "हल्की, बाधित, 6 घंटे से कम", icon: "😴", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Moderate, 6-7 hours, can't sleep in heat", textHi: "ठीक, 6-7 घंटे, गर्मी में नींद नहीं", icon: "🌙", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Deep, heavy, more than 8 hours", textHi: "गहरी, भारी, 8+ घंटे", icon: "💤", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Light, disturbed, less than 6 hours", textHi: "हल्की, बाधित, 6 घंटे से कम", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Moderate, 6-7 hours, can't sleep in heat", textHi: "ठीक, 6-7 घंटे, गर्मी में नींद नहीं", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Deep, heavy, more than 8 hours", textHi: "गहरी, भारी, 8+ घंटे", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -98,9 +98,9 @@ const PRAKRITI_QUESTIONS = [
     question: "What food do you naturally prefer?",
     questionHi: "आप स्वाभाविक रूप से कौन सा भोजन पसंद करते हैं?",
     options: [
-      { text: "Warm, oily, sweet, salty, sour foods", textHi: "गर्म, तैलीय, मीठा, नमकीन, खट्टा", icon: "🍛", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Cool, raw, bitter, sweet foods", textHi: "ठंडा, कच्चा, कड़वा, मीठा", icon: "🥗", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Dry, light, spicy, pungent foods", textHi: "सूखा, हल्का, तीखा", icon: "🌶️", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Warm, oily, sweet, salty, sour foods", textHi: "गर्म, तैलीय, मीठा, नमकीन, खट्टा", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Cool, raw, bitter, sweet foods", textHi: "ठंडा, कच्चा, कड़वा, मीठा", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Dry, light, spicy, pungent foods", textHi: "सूखा, हल्का, तीखा", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -109,9 +109,9 @@ const PRAKRITI_QUESTIONS = [
     question: "How is your exercise tolerance?",
     questionHi: "आप कितनी शारीरिक गतिविधि कर सकते हैं?",
     options: [
-      { text: "Low — tire easily, love light activity", textHi: "कम — जल्दी थक जाते हैं", icon: "🚶", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Medium — moderate exercise, competitive", textHi: "मध्यम — प्रतिस्पर्धी", icon: "🏃", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "High — good endurance, love slow steady exercise", textHi: "अधिक — सहनशीलता ज़्यादा है", icon: "🏋️", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Low — tire easily, love light activity", textHi: "कम — जल्दी थक जाते हैं", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Medium — moderate exercise, competitive", textHi: "मध्यम — प्रतिस्पर्धी", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "High — good endurance, love slow steady exercise", textHi: "अधिक — सहनशीलता ज़्यादा है", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
   {
@@ -120,9 +120,9 @@ const PRAKRITI_QUESTIONS = [
     question: "Under stress, you typically:",
     questionHi: "तनाव में आप आमतौर पर क्या करते हैं?",
     options: [
-      { text: "Become anxious, fearful, overthink", textHi: "चिंतित, डरे हुए, ज़्यादा सोचते हैं", icon: "😰", dosha: "V", score: { V: 3, P: 0, K: 0 } },
-      { text: "Become irritable, angry, judgmental", textHi: "चिड़चिड़े, गुस्सैल होते हैं", icon: "😠", dosha: "P", score: { V: 0, P: 3, K: 0 } },
-      { text: "Withdraw, become quiet, comfort eat", textHi: "शांत हो जाते हैं, खाने से मन लगाते हैं", icon: "🐚", dosha: "K", score: { V: 0, P: 0, K: 3 } },
+      { text: "Become anxious, fearful, overthink", textHi: "चिंतित, डरे हुए, ज़्यादा सोचते हैं", dosha: "V", score: { V: 3, P: 0, K: 0 } },
+      { text: "Become irritable, angry, judgmental", textHi: "चिड़चिड़े, गुस्सैल होते हैं", dosha: "P", score: { V: 0, P: 3, K: 0 } },
+      { text: "Withdraw, become quiet, comfort eat", textHi: "शांत हो जाते हैं, खाने से मन लगाते हैं", dosha: "K", score: { V: 0, P: 0, K: 3 } },
     ],
   },
 ];
@@ -133,7 +133,6 @@ const DOSHA_INFO = {
     nameHi: "वात",
     element: "Air + Ether",
     color: "#a29bfe",
-    emoji: "💨",
     traits: ["Creative", "Quick-thinking", "Enthusiastic", "Flexible"],
     tendencies: ["Anxiety", "Dry skin", "Irregular digestion", "Light sleep"],
     diet: ["Warm, cooked, oily foods", "Sweet, salty, sour tastes", "Avoid cold and raw foods"],
@@ -145,7 +144,6 @@ const DOSHA_INFO = {
     nameHi: "पित्त",
     element: "Fire + Water",
     color: "#ff9933",
-    emoji: "🔥",
     traits: ["Sharp intellect", "Courageous", "Focused", "Natural leader"],
     tendencies: ["Inflammation", "Acid reflux", "Skin rashes", "Irritability"],
     diet: ["Cool, sweet, bitter foods", "Coconut water, milk, ghee", "Avoid spicy, sour, fermented foods"],
@@ -157,7 +155,6 @@ const DOSHA_INFO = {
     nameHi: "कफ",
     element: "Earth + Water",
     color: "#00d4aa",
-    emoji: "🌊",
     traits: ["Strong", "Calm", "Compassionate", "Excellent memory"],
     tendencies: ["Weight gain", "Lethargy", "Congestion", "Attachment"],
     diet: ["Light, dry, warm, spicy foods", "Bitter, pungent, astringent tastes", "Avoid heavy, oily, sweet foods"],
@@ -249,7 +246,19 @@ export default function AyushAssessmentPage() {
 
             <div className="result-header animate-fade-in">
               <div className="result-title">
-                <span className="result-emoji">{primary.emoji}</span>
+                <span className="result-icon-badge" style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${primary.color}20`,
+                  border: `2px solid ${primary.color}`,
+                  color: primary.color
+                }}>
+                  <Leaf size={28} />
+                </span>
                 <div>
                   <h1>Your Prakriti</h1>
                   <p className="result-type">{primary.name}-{secondary.name} Prakriti</p>
@@ -263,7 +272,9 @@ export default function AyushAssessmentPage() {
 
             {/* Dosha Radar / Balance Bar */}
             <GlassCard hoverable={false} className="dosha-card animate-fade-in-up">
-              <h2 className="dosha-card-title">🌡️ Dosha Balance Analysis</h2>
+              <h2 className="dosha-card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Activity size={18} /> Dosha Balance Analysis
+              </h2>
 
               {/* Visual bars */}
               <div className="dosha-bars">
@@ -274,7 +285,21 @@ export default function AyushAssessmentPage() {
                   return (
                     <div key={d} className="dosha-bar-row">
                       <div className="dosha-bar-label">
-                        <span className="dosha-emoji">{info.emoji}</span>
+                        <span className="dosha-badge" style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: `${info.color}20`,
+                          color: info.color,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          marginRight: 6
+                        }}>
+                          {d}
+                        </span>
                         <div>
                           <strong style={{ color: info.color }}>{info.name}</strong>
                           <span className="dosha-hindi">{info.nameHi}</span>
@@ -302,9 +327,9 @@ export default function AyushAssessmentPage() {
                   {/* Triangle background */}
                   <polygon points="100,10 190,170 10,170" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
                   {/* Dosha labels */}
-                  <text x="100" y="6" textAnchor="middle" fontSize="9" fill={DOSHA_INFO.V.color} fontWeight="700">💨 Vata</text>
-                  <text x="194" y="178" textAnchor="end" fontSize="9" fill={DOSHA_INFO.P.color} fontWeight="700">🔥 Pitta</text>
-                  <text x="6" y="178" textAnchor="start" fontSize="9" fill={DOSHA_INFO.K.color} fontWeight="700">🌊 Kapha</text>
+                  <text x="100" y="6" textAnchor="middle" fontSize="9" fill={DOSHA_INFO.V.color} fontWeight="700">Vata</text>
+                  <text x="194" y="178" textAnchor="end" fontSize="9" fill={DOSHA_INFO.P.color} fontWeight="700">Pitta</text>
+                  <text x="6" y="178" textAnchor="start" fontSize="9" fill={DOSHA_INFO.K.color} fontWeight="700">Kapha</text>
                   {/* Patient's dosha point — weighted position */}
                   {(() => {
                     const vPct = result.percentages.V / 100;
@@ -336,18 +361,18 @@ export default function AyushAssessmentPage() {
 
             {/* Primary Dosha Details */}
             <GlassCard hoverable={false} className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-              <h2 style={{ color: primary.color, marginBottom: 12 }}>
-                {primary.emoji} {primary.name} Prakriti — Key Characteristics
+              <h2 style={{ color: primary.color, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <Leaf size={20} /> {primary.name} Prakriti — Key Characteristics
               </h2>
               <p className="dosha-element">Element: <strong>{primary.element}</strong></p>
 
               <div className="dosha-detail-grid">
                 <div className="dosha-detail-section">
-                  <h4>✨ Natural Strengths</h4>
+                  <h4>Natural Strengths</h4>
                   <ul>{primary.traits.map(t => <li key={t}>{t}</li>)}</ul>
                 </div>
                 <div className="dosha-detail-section">
-                  <h4>⚠️ Health Tendencies</h4>
+                  <h4>Health Tendencies</h4>
                   <ul>{primary.tendencies.map(t => <li key={t}>{t}</li>)}</ul>
                 </div>
               </div>
@@ -355,23 +380,25 @@ export default function AyushAssessmentPage() {
 
             {/* Diet & Lifestyle Recommendations */}
             <GlassCard hoverable={false} className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-              <h2 style={{ marginBottom: 12 }}>🌿 Personalized AYUSH Recommendations</h2>
+              <h2 style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <Leaf size={20} style={{ color: "#00d4aa" }} /> Personalized AYUSH Recommendations
+              </h2>
 
               <div className="recommendations-grid">
                 <div className="rec-section">
-                  <h4>🍽️ Ahara (Diet)</h4>
+                  <h4>Ahara (Diet)</h4>
                   <ul>{primary.diet.map(d => <li key={d}>{d}</li>)}</ul>
                 </div>
                 <div className="rec-section">
-                  <h4>🧘 Vihara (Lifestyle)</h4>
+                  <h4>Vihara (Lifestyle)</h4>
                   <ul>{primary.lifestyle.map(l => <li key={l}>{l}</li>)}</ul>
                 </div>
                 <div className="rec-section">
-                  <h4>🌱 Aushadhi (Herbs)</h4>
+                  <h4>Aushadhi (Herbs)</h4>
                   <div className="herb-tags">
                     {primary.herbs.map(h => (
-                      <span key={h} className="herb-tag" style={{ borderColor: `${primary.color}50`, color: primary.color }}>
-                        🌿 {h}
+                      <span key={h} className="herb-tag" style={{ borderColor: `${primary.color}50`, color: primary.color, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Leaf size={11} /> {h}
                       </span>
                     ))}
                   </div>
@@ -649,7 +676,22 @@ export default function AyushAssessmentPage() {
                       id={`prakriti-option-${opt.dosha}`}
                       style={{ "--dosha-color": doshaInfo.color }}
                     >
-                      <span className="opt-icon">{opt.icon}</span>
+                      <span className="opt-badge" style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: `${doshaInfo.color}20`,
+                        border: `1px solid ${doshaInfo.color}50`,
+                        color: doshaInfo.color,
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        flexShrink: 0
+                      }}>
+                        {opt.dosha}
+                      </span>
                       <div className="opt-text">
                         <span className="opt-main">{opt.text}</span>
                         <span className="opt-hindi">{opt.textHi}</span>
@@ -668,7 +710,7 @@ export default function AyushAssessmentPage() {
               const answered = Object.values(answers).filter(a => a.dosha === d).length;
               return (
                 <div key={d} className="dosha-indicator">
-                  <span>{info.emoji}</span>
+                  <span style={{ fontWeight: 700, color: info.color }}>{d}</span>
                   <span style={{ color: info.color }}>{info.name}</span>
                   <div className="indicator-dots">
                     {Array.from({ length: answered }).map((_, i) => (

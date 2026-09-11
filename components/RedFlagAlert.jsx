@@ -10,7 +10,7 @@ export default function RedFlagAlert({ reason, onDismiss, onTriage }) {
           <AlertTriangle size={64} color="#ff4757" />
         </div>
 
-        <h2>⚠️ EMERGENCY DETECTED</h2>
+        <h2>EMERGENCY DETECTED</h2>
         <p className="red-flag-reason">{reason || "Potential emergency symptoms detected"}</p>
 
         <div className="red-flag-actions">

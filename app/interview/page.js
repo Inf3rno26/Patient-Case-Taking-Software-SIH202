@@ -17,6 +17,9 @@ import {
   Zap,
   Camera,
   Radio,
+  Bot,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -66,7 +69,11 @@ function InterviewContent() {
 
   useEffect(() => {
     setMounted(true);
+    if (!session) {
+      startNewSession();
+    }
   }, []);
+
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -118,15 +125,15 @@ function InterviewContent() {
         : "Hello! I am MediKiosk AI. What brings you to the hospital today? You can speak or tap an option below.";
 
     const initialOptions = [
-      { text: language === "hi-IN" ? "बुखार" : "Fever", icon: "🤒" },
-      { text: language === "hi-IN" ? "सिर दर्द" : "Headache", icon: "🤕" },
-      { text: language === "hi-IN" ? "पेट दर्द" : "Stomach pain", icon: "😣" },
-      { text: language === "hi-IN" ? "खांसी / जुकाम" : "Cough / Cold", icon: "😷" },
-      { text: language === "hi-IN" ? "सीने में दर्द" : "Chest pain", icon: "💔" },
-      { text: language === "hi-IN" ? "शरीर में दर्द" : "Body pain", icon: "🦴" },
-      { text: language === "hi-IN" ? "चोट" : "Injury", icon: "🩹" },
-      { text: language === "hi-IN" ? "सामान्य जांच" : "General checkup", icon: "🏥" },
-      { text: language === "hi-IN" ? "अन्य" : "Other", icon: "💬" },
+      { text: language === "hi-IN" ? "बुखार" : "Fever" },
+      { text: language === "hi-IN" ? "सिर दर्द" : "Headache" },
+      { text: language === "hi-IN" ? "पेट दर्द" : "Stomach pain" },
+      { text: language === "hi-IN" ? "खांसी / जुकाम" : "Cough / Cold" },
+      { text: language === "hi-IN" ? "सीने में दर्द" : "Chest pain" },
+      { text: language === "hi-IN" ? "शरीर में दर्द" : "Body pain" },
+      { text: language === "hi-IN" ? "चोट" : "Injury" },
+      { text: language === "hi-IN" ? "सामान्य जांच" : "General checkup" },
+      { text: language === "hi-IN" ? "अन्य" : "Other" },
     ];
 
     setMessages([{ role: "ai", text: greeting }]);
@@ -389,7 +396,7 @@ function InterviewContent() {
                 id="header-scan-btn"
               >
                 <Camera size={14} />
-                <span>📷 Scan Docs</span>
+                <span>Scan Docs</span>
               </button>
 
               <button
@@ -413,8 +420,8 @@ function InterviewContent() {
               >
                 {msg.role === "ai" && (
                   <div className="chat-ai-header">
-                    <span className="chat-sender">
-                      <span className="sender-pulse-dot" /> 🤖 MediKiosk AI Assistant
+                    <span className="chat-sender" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <span className="sender-pulse-dot" /> <Bot size={13} /> MediKiosk AI Assistant
                     </span>
                     <button
                       type="button"
@@ -452,8 +459,8 @@ function InterviewContent() {
             {isLoading && (
               <div className="chat-bubble ai loading-bubble">
                 <div className="chat-ai-header">
-                  <span className="chat-sender">
-                    <span className="sender-pulse-dot" /> 🤖 MediKiosk AI Assistant
+                  <span className="chat-sender" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <span className="sender-pulse-dot" /> <Bot size={13} /> MediKiosk AI Assistant
                   </span>
                 </div>
                 <LoadingPulse text="Understanding symptoms & adapting questions..." />
@@ -551,7 +558,7 @@ function InterviewContent() {
                     title="Skip body map"
                     id="bodymap-skip-btn"
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
                 <BodyMap
@@ -568,14 +575,16 @@ function InterviewContent() {
                 className="other-input-form animate-fade-in-up"
               >
                 <div className="other-input-header">
-                  <span>💬 Please describe in your own words:</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <MessageSquare size={14} /> Please describe in your own words:
+                  </span>
                   <button
                     type="button"
                     className="btn-icon"
                     onClick={() => setShowOtherInput(false)}
                     aria-label="Cancel"
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
                 <div className="other-input-row">
@@ -644,8 +653,8 @@ function InterviewContent() {
             {isComplete && (
               <div className="complete-section animate-scale-in">
                 <GlassCard hoverable={false} style={{ textAlign: "center" }}>
-                  <h3 style={{ color: "var(--color-accent-primary)", marginBottom: 12 }}>
-                    ✅ Interview Complete!
+                  <h3 style={{ color: "var(--color-accent-primary)", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <CheckCircle2 size={20} /> Interview Complete!
                   </h3>
                   <p style={{ color: "var(--color-text-secondary)", marginBottom: 20, fontSize: "0.9rem" }}>
                     Your medical history has been recorded. You can now scan documents or view your summary.
@@ -694,7 +703,7 @@ function InterviewContent() {
             reason={showRedFlag}
             onDismiss={() => setShowRedFlag(null)}
             onTriage={() => {
-              alert("🚨 Priority triage alert sent to staff!");
+              alert("Priority triage alert sent to staff!");
               setShowRedFlag(null);
             }}
           />

@@ -88,7 +88,7 @@ export default function DocumentUpload({ onUpload, disabled = false, onCameraCap
               id="upload-camera-btn"
             >
               <Camera size={18} />
-              📷 Take Photo
+              Take Photo
             </button>
           ) : (
             <button

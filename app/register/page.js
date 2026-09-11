@@ -13,6 +13,13 @@ import {
   Minus,
   Plus,
   UserCheck,
+  Building2,
+  Stethoscope,
+  Pill,
+  FlaskConical,
+  FolderOpen,
+  CheckCircle,
+  Users,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -217,7 +224,9 @@ function RegisterContent() {
                   {abhaFetchStep === "fetching" && (
                     <div className="abha-fetching animate-fade-in">
                       <div className="abdm-logo-row">
-                        <div className="abdm-logo">🏥</div>
+                        <div className="abdm-logo">
+                          <Building2 size={24} />
+                        </div>
                         <div className="abdm-connecting">
                           <div className="connect-pulse" />
                           <span>Fetching records from ABDM National Health Registry...</span>
@@ -225,10 +234,10 @@ function RegisterContent() {
                       </div>
                       <div className="fetch-steps">
                         {[
-                          "🔍 Authenticating ABHA identity...",
-                          "📋 Retrieving past medical history...",
-                          "💊 Fetching linked medications...",
-                          "🧪 Loading lab results...",
+                          "Authenticating ABHA identity...",
+                          "Retrieving past medical history...",
+                          "Fetching linked medications...",
+                          "Loading lab results...",
                         ].map((step, i) => (
                           <div key={i} className="fetch-step" style={{ animationDelay: `${i * 0.45}s` }}>
                             <div className="step-dot" style={{ animationDelay: `${i * 0.45}s` }} />
@@ -243,15 +252,15 @@ function RegisterContent() {
                   {abhaFetchStep === "done" && abhaRecords && form.name && (
                     <div className="abha-result animate-fade-in">
                       <div className="abha-verified-header">
-                        <span className="badge badge-success">✓ ABHA Verified &amp; Records Prefilled</span>
-                        <span className="abdm-badge">🇮🇳 Ayushman Bharat Digital Mission</span>
+                        <span className="badge badge-success">ABHA Verified &amp; Records Prefilled</span>
+                        <span className="abdm-badge">Ayushman Bharat Digital Mission</span>
                       </div>
                       
                       <div className="patient-card">
                         <User size={32} />
                         <div>
                           <h3>{form.name}</h3>
-                          <p>Age: {form.age} | Gender: {form.gender} | 📞 {form.phone}</p>
+                          <p>Age: {form.age} | Gender: {form.gender} | Phone: {form.phone}</p>
                           <p style={{ fontSize: "0.72rem", color: "var(--color-accent-primary)" }}>ABHA: {abhaRecords.abhaAddress}</p>
                         </div>
                       </div>
@@ -259,11 +268,13 @@ function RegisterContent() {
                       {/* Pre-fetched ABDM Health Records */}
                       <div className="abdm-records">
                         <div className="abdm-record-header">
-                          <span>📂 Pre-loaded Health Records from ABDM</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <FolderOpen size={16} /> Pre-loaded Health Records from ABDM
+                          </span>
                         </div>
 
                         <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-                          <span className="record-icon">🏥</span>
+                          <span className="record-icon"><Building2 size={16} /></span>
                           <div>
                             <strong>Last Visit:</strong> {abhaRecords.lastVisit.hospital}
                             <span className="record-date">{abhaRecords.lastVisit.date} — {abhaRecords.lastVisit.dept}</span>
@@ -271,7 +282,7 @@ function RegisterContent() {
                         </div>
 
                         <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-                          <span className="record-icon">🩺</span>
+                          <span className="record-icon"><Stethoscope size={16} /></span>
                           <div>
                             <strong>Known Conditions:</strong>
                             <div className="record-tags">
@@ -283,7 +294,7 @@ function RegisterContent() {
                         </div>
 
                         <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-                          <span className="record-icon">💊</span>
+                          <span className="record-icon"><Pill size={16} /></span>
                           <div>
                             <strong>Current Medications:</strong>
                             <div className="record-tags">
@@ -295,7 +306,7 @@ function RegisterContent() {
                         </div>
 
                         <div className="abdm-record-item animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-                          <span className="record-icon">🧪</span>
+                          <span className="record-icon"><FlaskConical size={16} /></span>
                           <div>
                             <strong>Recent Labs:</strong>
                             <div className="record-tags">
@@ -309,7 +320,7 @@ function RegisterContent() {
                         </div>
 
                         <p className="abdm-prefill-note">
-                          ✅ MediKiosk will use these records to pre-fill your interview — saving time and improving accuracy
+                          MediKiosk will use these records to pre-fill your interview — saving time and improving accuracy
                         </p>
                       </div>
 
@@ -433,9 +444,9 @@ function RegisterContent() {
                       </label>
                       <div className="gender-cards-grid">
                         {[
-                          { key: "male", emoji: "👨", en: "Male", hi: "पुरुष" },
-                          { key: "female", emoji: "👩", en: "Female", hi: "महिला" },
-                          { key: "other", emoji: "🧑", en: "Other", hi: "अन्य" },
+                          { key: "male", en: "Male", hi: "पुरुष" },
+                          { key: "female", en: "Female", hi: "महिला" },
+                          { key: "other", en: "Other", hi: "अन्य" },
                         ].map((g) => (
                           <button
                             key={g.key}
@@ -448,7 +459,9 @@ function RegisterContent() {
                             }
                             id={`gender-${g.key}`}
                           >
-                            <span className="gender-card-emoji">{g.emoji}</span>
+                            <span className="gender-card-icon">
+                              <User size={20} />
+                            </span>
                             <span className="gender-card-en">{g.en}</span>
                             <span className="gender-card-hi">{g.hi}</span>
                           </button>

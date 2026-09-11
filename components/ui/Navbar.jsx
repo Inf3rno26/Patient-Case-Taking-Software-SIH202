@@ -1,7 +1,20 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, AlertTriangle, ArrowLeft, Home, Monitor, BarChart2, Leaf, Stethoscope } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  Home,
+  Monitor,
+  BarChart2,
+  Leaf,
+  Stethoscope,
+  UserPlus,
+  Mic,
+  FileText,
+} from "lucide-react";
+import ToneSwitcher from "@/components/ToneSwitcher";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -31,52 +44,86 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Center Quick Navigation for Judges & Evaluators */}
+        {/* Center Quick Navigation for Evaluators, Staff & Patients */}
         <div className="navbar-center no-print">
+          <button
+            className={`nav-pill ${pathname === "/register" ? "active" : ""}`}
+            onClick={() => router.push("/register")}
+            title="Patient Registration & ABHA Link"
+            id="nav-register-btn"
+          >
+            <UserPlus size={14} />
+            <span className="nav-pill-text">Register</span>
+          </button>
+
+          <button
+            className={`nav-pill ${pathname === "/interview" ? "active" : ""}`}
+            onClick={() => router.push("/interview")}
+            title="Voice Clinical History Interview"
+            id="nav-interview-btn"
+          >
+            <Mic size={14} />
+            <span className="nav-pill-text">Interview</span>
+          </button>
+
+          <button
+            className={`nav-pill ${pathname === "/summary" ? "active" : ""}`}
+            onClick={() => router.push("/summary")}
+            title="Clinical Summary & Token"
+            id="nav-summary-btn"
+          >
+            <FileText size={14} />
+            <span className="nav-pill-text">Summary</span>
+          </button>
+
           <button
             className={`nav-pill ${pathname === "/token" ? "active" : ""}`}
             onClick={() => router.push("/token")}
             title="Live OPD Queue Display (TV Mode)"
             id="nav-queue-btn"
           >
-            <Monitor size={15} />
-            <span className="nav-pill-text">OPD Queue</span>
+            <Monitor size={14} />
+            <span className="nav-pill-text">Queue</span>
           </button>
-          <button
-            className={`nav-pill ${pathname === "/ayush-assessment" ? "active" : ""}`}
-            onClick={() => router.push("/ayush-assessment")}
-            title="AYUSH Prakriti Assessment Quiz"
-            id="nav-ayush-btn"
-          >
-            <Leaf size={15} />
-            <span className="nav-pill-text">AYUSH Prakriti</span>
-          </button>
-          <button
-            className={`nav-pill ${pathname === "/analytics" ? "active" : ""}`}
-            onClick={() => router.push("/analytics")}
-            title="OPD Real-Time Performance Analytics"
-            id="nav-analytics-btn"
-          >
-            <BarChart2 size={15} />
-            <span className="nav-pill-text">Analytics</span>
-          </button>
+
           <button
             className={`nav-pill ${pathname === "/physician" ? "active" : ""}`}
             onClick={() => router.push("/physician")}
             title="Physician OPD Dashboard"
             id="nav-physician-btn"
           >
-            <Stethoscope size={15} />
+            <Stethoscope size={14} />
             <span className="nav-pill-text">Doctor</span>
+          </button>
+
+          <button
+            className={`nav-pill ${pathname === "/ayush-assessment" ? "active" : ""}`}
+            onClick={() => router.push("/ayush-assessment")}
+            title="AYUSH Prakriti Assessment Quiz"
+            id="nav-ayush-btn"
+          >
+            <Leaf size={14} />
+            <span className="nav-pill-text">AYUSH</span>
+          </button>
+
+          <button
+            className={`nav-pill ${pathname === "/analytics" ? "active" : ""}`}
+            onClick={() => router.push("/analytics")}
+            title="OPD Real-Time Performance Analytics"
+            id="nav-analytics-btn"
+          >
+            <BarChart2 size={14} />
+            <span className="nav-pill-text">Analytics</span>
           </button>
         </div>
 
         <div className="navbar-right">
+          <ToneSwitcher compact={true} showLabel={false} />
           <button
             className="btn-danger btn-touch"
             onClick={() => {
               if (confirm("Trigger emergency alert?")) {
-                alert("🚨 Emergency alert sent to triage staff!");
+                alert("Emergency alert sent to triage staff!");
               }
             }}
             id="nav-emergency-btn"
@@ -96,6 +143,7 @@ export default function Navbar() {
             </button>
           )}
         </div>
+
       </div>
 
       <style jsx>{`
@@ -105,14 +153,16 @@ export default function Navbar() {
           left: 0;
           right: 0;
           height: 70px;
-          background: rgba(6, 10, 26, 0.85);
+          background: var(--color-bg-card);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid var(--color-border);
           z-index: 100;
           display: flex;
           align-items: center;
+          transition: background 0.3s ease, border-color 0.3s ease;
         }
+
 
         .navbar-inner {
           display: flex;
@@ -206,11 +256,13 @@ export default function Navbar() {
         }
 
         .nav-pill.active {
-          background: rgba(0, 212, 170, 0.15);
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--color-border-accent);
           color: var(--color-accent-primary);
           font-weight: 600;
-          box-shadow: 0 0 12px rgba(0, 212, 170, 0.2);
+          box-shadow: var(--shadow-glow);
         }
+
 
         @media (max-width: 900px) {
           .nav-pill-text {

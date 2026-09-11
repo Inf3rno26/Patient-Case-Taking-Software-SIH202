@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { RotateCcw, ZoomIn, X, Check } from "lucide-react";
+import { RotateCcw, ZoomIn, X, Check, MapPin, User } from "lucide-react";
 
 /**
  * MediKiosk Body Map — Interactive SVG pain location selector
@@ -12,66 +12,66 @@ import { RotateCcw, ZoomIn, X, Check } from "lucide-react";
 const BODY_ZONES = {
   front: [
     // Head
-    { id: "head", label: "Head", cx: 100, cy: 42, r: 30, emoji: "🧠" },
+    { id: "head", label: "Head", cx: 100, cy: 42, r: 30 },
     // Face
-    { id: "face", label: "Face", cx: 100, cy: 55, r: 16, emoji: "😶" },
+    { id: "face", label: "Face", cx: 100, cy: 55, r: 16 },
     // Neck
-    { id: "neck", label: "Neck", cx: 100, cy: 82, r: 12, emoji: "🔴" },
+    { id: "neck", label: "Neck", cx: 100, cy: 82, r: 12 },
     // Left shoulder
-    { id: "left_shoulder", label: "Left Shoulder", cx: 62, cy: 98, r: 15, emoji: "💪" },
+    { id: "left_shoulder", label: "Left Shoulder", cx: 62, cy: 98, r: 15 },
     // Right shoulder
-    { id: "right_shoulder", label: "Right Shoulder", cx: 138, cy: 98, r: 15, emoji: "💪" },
+    { id: "right_shoulder", label: "Right Shoulder", cx: 138, cy: 98, r: 15 },
     // Chest (center)
-    { id: "chest_left", label: "Left Chest", cx: 82, cy: 125, r: 18, emoji: "❤️" },
-    { id: "chest_right", label: "Right Chest", cx: 118, cy: 125, r: 18, emoji: "🫁" },
+    { id: "chest_left", label: "Left Chest", cx: 82, cy: 125, r: 18 },
+    { id: "chest_right", label: "Right Chest", cx: 118, cy: 125, r: 18 },
     // Abdomen
-    { id: "epigastrium", label: "Epigastrium", cx: 100, cy: 148, r: 16, emoji: "🔸" },
-    { id: "umbilicus", label: "Umbilical", cx: 100, cy: 168, r: 14, emoji: "🔸" },
-    { id: "left_iliac", label: "Left Iliac Fossa", cx: 78, cy: 188, r: 14, emoji: "⬇️" },
-    { id: "right_iliac", label: "Right Iliac Fossa", cx: 122, cy: 188, r: 14, emoji: "⬇️" },
-    { id: "hypogastrium", label: "Hypogastrium", cx: 100, cy: 195, r: 14, emoji: "⬇️" },
+    { id: "epigastrium", label: "Epigastrium", cx: 100, cy: 148, r: 16 },
+    { id: "umbilicus", label: "Umbilical", cx: 100, cy: 168, r: 14 },
+    { id: "left_iliac", label: "Left Iliac Fossa", cx: 78, cy: 188, r: 14 },
+    { id: "right_iliac", label: "Right Iliac Fossa", cx: 122, cy: 188, r: 14 },
+    { id: "hypogastrium", label: "Hypogastrium", cx: 100, cy: 195, r: 14 },
     // Left arm
-    { id: "left_arm", label: "Left Arm", cx: 45, cy: 145, r: 13, emoji: "💪" },
-    { id: "left_forearm", label: "Left Forearm", cx: 35, cy: 175, r: 11, emoji: "🦵" },
-    { id: "left_hand", label: "Left Hand", cx: 28, cy: 200, r: 10, emoji: "🤚" },
+    { id: "left_arm", label: "Left Arm", cx: 45, cy: 145, r: 13 },
+    { id: "left_forearm", label: "Left Forearm", cx: 35, cy: 175, r: 11 },
+    { id: "left_hand", label: "Left Hand", cx: 28, cy: 200, r: 10 },
     // Right arm
-    { id: "right_arm", label: "Right Arm", cx: 155, cy: 145, r: 13, emoji: "💪" },
-    { id: "right_forearm", label: "Right Forearm", cx: 165, cy: 175, r: 11, emoji: "🦵" },
-    { id: "right_hand", label: "Right Hand", cx: 172, cy: 200, r: 10, emoji: "🤚" },
+    { id: "right_arm", label: "Right Arm", cx: 155, cy: 145, r: 13 },
+    { id: "right_forearm", label: "Right Forearm", cx: 165, cy: 175, r: 11 },
+    { id: "right_hand", label: "Right Hand", cx: 172, cy: 200, r: 10 },
     // Hips/Groin
-    { id: "left_hip", label: "Left Hip", cx: 75, cy: 210, r: 13, emoji: "🦴" },
-    { id: "right_hip", label: "Right Hip", cx: 125, cy: 210, r: 13, emoji: "🦴" },
+    { id: "left_hip", label: "Left Hip", cx: 75, cy: 210, r: 13 },
+    { id: "right_hip", label: "Right Hip", cx: 125, cy: 210, r: 13 },
     // Thighs
-    { id: "left_thigh", label: "Left Thigh", cx: 80, cy: 240, r: 14, emoji: "🦵" },
-    { id: "right_thigh", label: "Right Thigh", cx: 120, cy: 240, r: 14, emoji: "🦵" },
+    { id: "left_thigh", label: "Left Thigh", cx: 80, cy: 240, r: 14 },
+    { id: "right_thigh", label: "Right Thigh", cx: 120, cy: 240, r: 14 },
     // Knees
-    { id: "left_knee", label: "Left Knee", cx: 80, cy: 275, r: 12, emoji: "🦵" },
-    { id: "right_knee", label: "Right Knee", cx: 120, cy: 275, r: 12, emoji: "🦵" },
+    { id: "left_knee", label: "Left Knee", cx: 80, cy: 275, r: 12 },
+    { id: "right_knee", label: "Right Knee", cx: 120, cy: 275, r: 12 },
     // Leg/Ankle
-    { id: "left_leg", label: "Left Leg / Calf", cx: 80, cy: 305, r: 12, emoji: "🦵" },
-    { id: "right_leg", label: "Right Leg / Calf", cx: 120, cy: 305, r: 12, emoji: "🦵" },
-    { id: "left_ankle", label: "Left Ankle / Foot", cx: 80, cy: 335, r: 12, emoji: "🦶" },
-    { id: "right_ankle", label: "Right Ankle / Foot", cx: 120, cy: 335, r: 12, emoji: "🦶" },
+    { id: "left_leg", label: "Left Leg / Calf", cx: 80, cy: 305, r: 12 },
+    { id: "right_leg", label: "Right Leg / Calf", cx: 120, cy: 305, r: 12 },
+    { id: "left_ankle", label: "Left Ankle / Foot", cx: 80, cy: 335, r: 12 },
+    { id: "right_ankle", label: "Right Ankle / Foot", cx: 120, cy: 335, r: 12 },
   ],
   back: [
-    { id: "back_head", label: "Back of Head", cx: 100, cy: 42, r: 28, emoji: "🧠" },
-    { id: "neck_back", label: "Back of Neck", cx: 100, cy: 80, r: 12, emoji: "🔴" },
-    { id: "left_shoulder_back", label: "Left Shoulder", cx: 62, cy: 98, r: 15, emoji: "💪" },
-    { id: "right_shoulder_back", label: "Right Shoulder", cx: 138, cy: 98, r: 15, emoji: "💪" },
-    { id: "upper_back_left", label: "Upper Back (L)", cx: 82, cy: 120, r: 16, emoji: "🔙" },
-    { id: "upper_back_right", label: "Upper Back (R)", cx: 118, cy: 120, r: 16, emoji: "🔙" },
-    { id: "mid_back", label: "Mid Back", cx: 100, cy: 148, r: 16, emoji: "🔙" },
-    { id: "lower_back_left", label: "Lower Back (L)", cx: 82, cy: 172, r: 15, emoji: "🔙" },
-    { id: "lower_back_right", label: "Lower Back (R)", cx: 118, cy: 172, r: 15, emoji: "🔙" },
-    { id: "sacrum", label: "Sacrum / Tailbone", cx: 100, cy: 198, r: 14, emoji: "🦴" },
-    { id: "left_buttock", label: "Left Buttock", cx: 78, cy: 215, r: 14, emoji: "🍑" },
-    { id: "right_buttock", label: "Right Buttock", cx: 122, cy: 215, r: 14, emoji: "🍑" },
-    { id: "left_thigh_back", label: "Left Thigh (back)", cx: 80, cy: 245, r: 14, emoji: "🦵" },
-    { id: "right_thigh_back", label: "Right Thigh (back)", cx: 120, cy: 245, r: 14, emoji: "🦵" },
-    { id: "left_calf", label: "Left Calf", cx: 80, cy: 290, r: 12, emoji: "🦵" },
-    { id: "right_calf", label: "Right Calf", cx: 120, cy: 290, r: 12, emoji: "🦵" },
-    { id: "left_heel", label: "Left Heel / Foot", cx: 80, cy: 330, r: 12, emoji: "🦶" },
-    { id: "right_heel", label: "Right Heel / Foot", cx: 120, cy: 330, r: 12, emoji: "🦶" },
+    { id: "back_head", label: "Back of Head", cx: 100, cy: 42, r: 28 },
+    { id: "neck_back", label: "Back of Neck", cx: 100, cy: 80, r: 12 },
+    { id: "left_shoulder_back", label: "Left Shoulder", cx: 62, cy: 98, r: 15 },
+    { id: "right_shoulder_back", label: "Right Shoulder", cx: 138, cy: 98, r: 15 },
+    { id: "upper_back_left", label: "Upper Back (L)", cx: 82, cy: 120, r: 16 },
+    { id: "upper_back_right", label: "Upper Back (R)", cx: 118, cy: 120, r: 16 },
+    { id: "mid_back", label: "Mid Back", cx: 100, cy: 148, r: 16 },
+    { id: "lower_back_left", label: "Lower Back (L)", cx: 82, cy: 172, r: 15 },
+    { id: "lower_back_right", label: "Lower Back (R)", cx: 118, cy: 172, r: 15 },
+    { id: "sacrum", label: "Sacrum / Tailbone", cx: 100, cy: 198, r: 14 },
+    { id: "left_buttock", label: "Left Buttock", cx: 78, cy: 215, r: 14 },
+    { id: "right_buttock", label: "Right Buttock", cx: 122, cy: 215, r: 14 },
+    { id: "left_thigh_back", label: "Left Thigh (back)", cx: 80, cy: 245, r: 14 },
+    { id: "right_thigh_back", label: "Right Thigh (back)", cx: 120, cy: 245, r: 14 },
+    { id: "left_calf", label: "Left Calf", cx: 80, cy: 290, r: 12 },
+    { id: "right_calf", label: "Right Calf", cx: 120, cy: 290, r: 12 },
+    { id: "left_heel", label: "Left Heel / Foot", cx: 80, cy: 330, r: 12 },
+    { id: "right_heel", label: "Right Heel / Foot", cx: 120, cy: 330, r: 12 },
   ],
 };
 
@@ -167,8 +167,8 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
     <div className="bodymap-container">
       {/* Header */}
       <div className="bodymap-header">
-        <h3>
-          {isHi ? "🫀 दर्द की जगह बताएं" : "🫀 Tap where it hurts"}
+        <h3 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <MapPin size={20} style={{ color: "var(--color-accent-primary)" }} /> {isHi ? "दर्द की जगह बताएं" : "Tap where it hurts"}
         </h3>
         <p className="bodymap-hint">
           {isHi
@@ -184,7 +184,7 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
           onClick={() => setView("front")}
           id="bodymap-front-btn"
         >
-          🧍 {isHi ? "आगे" : "Front"}
+          <User size={14} /> {isHi ? "आगे" : "Front"}
         </button>
         <button
           className={`view-btn ${view === "back" ? "active" : ""}`}
@@ -218,72 +218,100 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
           </defs>
 
           {/* Silhouette paths — simplified human outline */}
-          <g opacity="0.15" fill="white" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5">
-            {/* Head */}
-            <ellipse cx="100" cy="42" rx="24" ry="28" />
-            {/* Neck */}
-            <rect x="92" y="68" width="16" height="18" rx="4" />
-            {/* Torso */}
-            <path d={
-              view === "front"
-                ? "M65 90 Q58 95 52 110 L48 200 Q60 210 100 212 Q140 210 152 200 L148 110 Q142 95 135 90 Z"
-                : "M65 90 Q58 95 52 110 L48 205 Q60 215 100 217 Q140 215 152 205 L148 110 Q142 95 135 90 Z"
-            } />
-            {/* Left arm */}
-            <path d="M52 100 L35 170 Q33 185 30 200 L38 200 Q40 185 48 170 L60 108 Z" />
-            {/* Right arm */}
-            <path d="M148 100 L165 170 Q167 185 170 200 L162 200 Q160 185 152 170 L140 108 Z" />
-            {/* Left leg */}
-            <path d="M68 210 L62 300 Q60 325 62 345 L78 345 Q76 325 78 300 L88 210 Z" />
-            {/* Right leg */}
-            <path d="M132 210 L138 300 Q140 325 138 345 L122 345 Q124 325 122 300 L112 210 Z" />
-          </g>
+          {/* Head & Neck */}
+          <ellipse cx="100" cy="42" rx="22" ry="26" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          <path d="M 93 68 L 93 82 L 107 82 L 107 68" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          {/* Torso */}
+          <path
+            d="M 65 92 C 60 92, 50 105, 52 140 C 53 160, 60 200, 72 215 L 128 215 C 140 200, 147 160, 148 140 C 150 105, 140 92, 135 92 Z"
+            fill="rgba(255,255,255,0.05)"
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth="1"
+          />
+          {/* Left Arm */}
+          <path
+            d="M 52 95 C 40 105, 30 140, 26 195 C 24 208, 32 210, 35 198 C 40 155, 48 125, 58 105"
+            fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
+          {/* Right Arm */}
+          <path
+            d="M 148 95 C 160 105, 170 140, 174 195 C 176 208, 168 210, 165 198 C 160 155, 152 125, 142 105"
+            fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
+          {/* Legs */}
+          {/* Left leg */}
+          <path
+            d="M 72 215 C 70 240, 68 280, 72 340 L 88 340 C 86 280, 88 240, 96 215 Z"
+            fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
+          {/* Right leg */}
+          <path
+            d="M 128 215 C 130 240, 132 280, 128 340 L 112 340 C 114 280, 112 240, 104 215 Z"
+            fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="1"
+          />
 
-          {/* Clickable zones */}
+          {/* Radiating pain arrows */}
+          {radiatingTargets.map((rt) => {
+            const from = zones.find((z) => selectedZones.some((sz) => sz.id === z.id && RADIATION_MAP[sz.id]?.includes(rt.id)));
+            if (!from) return null;
+            return (
+              <line
+                key={`rad-${rt.id}`}
+                x1={from.cx}
+                y1={from.cy}
+                x2={rt.cx}
+                y2={rt.cy}
+                stroke="#ff4757"
+                strokeWidth="2"
+                strokeDasharray="4 2"
+                opacity="0.7"
+              />
+            );
+          })}
+
+          {/* Interactive zone circles */}
           {zones.map((zone) => {
             const isSelected = selectedZones.some((z) => z.id === zone.id);
+            const isHovered = hoveredZone === zone.id;
+
             return (
               <g
                 key={zone.id}
-                onClick={() => handleZoneTap(zone)}
+                onClick={() => handleZoneClick(zone)}
                 onMouseEnter={() => setHoveredZone(zone.id)}
                 onMouseLeave={() => setHoveredZone(null)}
                 style={{ cursor: "pointer" }}
+                id={`bodymap-zone-${zone.id}`}
               >
-                {/* Pulse ring for selected zones */}
-                {isSelected && (
-                  <circle
-                    cx={zone.cx}
-                    cy={zone.cy}
-                    r={zone.r + 6}
-                    fill="none"
-                    stroke={SEVERITY_COLORS[Math.ceil(severity / 2)]}
-                    strokeWidth="1.5"
-                    opacity="0.4"
-                    className="pulse-ring"
-                  />
-                )}
                 <circle
                   cx={zone.cx}
                   cy={zone.cy}
-                  r={zone.r}
+                  r={isHovered ? zone.r + 2 : zone.r}
                   fill={getZoneColor(zone)}
                   stroke={getZoneStroke(zone)}
                   strokeWidth={isSelected ? "2" : "1"}
                   filter={isSelected ? "url(#glow)" : undefined}
                   style={{ transition: "all 0.15s ease" }}
                 />
-                {/* Zone emoji for larger zones */}
-                {zone.r >= 14 && (
-                  <text
-                    x={zone.cx}
-                    y={zone.cy + 4}
-                    textAnchor="middle"
-                    fontSize="10"
+                {/* Checkmark for selected zone */}
+                {isSelected && (
+                  <path
+                    d={`M${zone.cx - 3.5} ${zone.cy} l2.5 2.5 l5 -5`}
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     style={{ pointerEvents: "none", userSelect: "none" }}
-                  >
-                    {isSelected ? "✕" : zone.emoji}
-                  </text>
+                  />
                 )}
               </g>
             );
@@ -303,8 +331,8 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
       {selectedZones.length > 0 && (
         <div className="bodymap-selected animate-fade-in">
           <div className="selected-zones-header">
-            <span>
-              {isHi ? "📍 चुनी गई जगहें:" : "📍 Selected:"}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <MapPin size={13} /> {isHi ? "चुनी गई जगहें:" : "Selected:"}
             </span>
             <button className="clear-btn" onClick={handleClear} id="bodymap-clear-btn">
               <X size={12} /> {isHi ? "हटाएं" : "Clear"}
@@ -320,7 +348,7 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
                   color: SEVERITY_COLORS[Math.ceil(zone.severity / 2)],
                 }}
               >
-                {zone.emoji} {zone.label}
+                {zone.label}
               </span>
             ))}
           </div>
@@ -334,8 +362,15 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
           <span style={{ color: SEVERITY_COLORS[Math.ceil(severity / 2)], fontWeight: 700 }}>
             {severity}/10
           </span>
-          <span className="severity-emoji">
-            {severity <= 2 ? "😌" : severity <= 4 ? "😕" : severity <= 6 ? "😣" : severity <= 8 ? "😖" : "😫"}
+          <span className="severity-badge-text" style={{
+            fontSize: "0.78rem",
+            padding: "2px 8px",
+            borderRadius: "50px",
+            background: `${SEVERITY_COLORS[Math.ceil(severity / 2)]}20`,
+            border: `1px solid ${SEVERITY_COLORS[Math.ceil(severity / 2)]}60`,
+            color: SEVERITY_COLORS[Math.ceil(severity / 2)]
+          }}>
+            {severity <= 3 ? "Mild" : severity <= 6 ? "Moderate" : "Severe"}
           </span>
         </label>
         <input
@@ -368,7 +403,7 @@ export default function BodyMap({ onLocationSelect, language = "en-IN" }) {
           </>
         ) : (
           <>
-            ✓ {isHi ? "इस जगह का दर्द दर्ज करें" : "Confirm Pain Location"}
+            <Check size={18} /> {isHi ? "इस जगह का दर्द दर्ज करें" : "Confirm Pain Location"}
           </>
         )}
       </button>

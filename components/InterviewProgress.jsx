@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, CheckCircle2 } from "lucide-react";
 import { HISTORY_SECTIONS } from "@/lib/clinical-schema";
 
 export default function InterviewProgress({ currentSection, progress = 0 }) {
@@ -32,10 +32,14 @@ export default function InterviewProgress({ currentSection, progress = 0 }) {
       </div>
 
       {/* Current section label */}
-      <p className="current-section-label">
-        {currentSection === "complete"
-          ? "✅ Interview Complete"
-          : `${HISTORY_SECTIONS[currentIndex]?.icon || ""} ${HISTORY_SECTIONS[currentIndex]?.label || ""}`}
+      <p className="current-section-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        {currentSection === "complete" ? (
+          <>
+            <CheckCircle2 size={14} style={{ color: "var(--color-accent-primary)" }} /> Interview Complete
+          </>
+        ) : (
+          HISTORY_SECTIONS[currentIndex]?.label || ""
+        )}
       </p>
 
       <style jsx>{`

@@ -4,10 +4,23 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart2, Users, Clock, Activity, AlertTriangle,
-  TrendingUp, Stethoscope, ArrowLeft, RefreshCw, Download
+  TrendingUp, Stethoscope, ArrowLeft, RefreshCw, Download,
+  Heart, Leaf, Bone, Flower2, Baby, Brain, Building2,
+  Globe, Calendar, Bot, Check
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
+
+const DEPT_ICONS = {
+  "General Medicine": Stethoscope,
+  "Ayurveda (AYUSH)": Leaf,
+  "Orthopedics": Bone,
+  "Cardiology": Heart,
+  "Gynecology": Flower2,
+  "Pediatrics": Baby,
+  "Neurology": Brain,
+  "Others": Building2,
+};
 
 // ─── Simulated live OPD data ────────────────────────────────────────────────
 function generateLiveData() {
@@ -39,14 +52,14 @@ function generateLiveData() {
 
     // Department distribution
     departments: [
-      { name: "General Medicine", count: 234, color: "#00d4aa", icon: "🩺" },
-      { name: "Ayurveda (AYUSH)", count: 203, color: "#ff9933", icon: "🌿" },
-      { name: "Orthopedics", count: 98, color: "#4db8ff", icon: "🦴" },
-      { name: "Cardiology", count: 87, color: "#ff4757", icon: "❤️" },
-      { name: "Gynecology", count: 76, color: "#ff6b81", icon: "🌸" },
-      { name: "Pediatrics", count: 69, color: "#ffd93d", icon: "👶" },
-      { name: "Neurology", count: 45, color: "#a29bfe", icon: "🧠" },
-      { name: "Others", count: 35, color: "#636e72", icon: "🏥" },
+      { name: "General Medicine", count: 234, color: "#00d4aa" },
+      { name: "Ayurveda (AYUSH)", count: 203, color: "#ff9933" },
+      { name: "Orthopedics", count: 98, color: "#4db8ff" },
+      { name: "Cardiology", count: 87, color: "#ff4757" },
+      { name: "Gynecology", count: 76, color: "#ff6b81" },
+      { name: "Pediatrics", count: 69, color: "#ffd93d" },
+      { name: "Neurology", count: 45, color: "#a29bfe" },
+      { name: "Others", count: 35, color: "#636e72" },
     ],
 
     // Language distribution
@@ -60,9 +73,9 @@ function generateLiveData() {
 
     // Priority breakdown
     priorities: [
-      { level: "🟢 Routine", count: 721, pct: 85, color: "#00d4aa" },
-      { level: "🟡 Urgent", count: 114, pct: 13, color: "#ffb347" },
-      { level: "🔴 Emergency", count: 12, pct: 2, color: "#ff4757" },
+      { level: "Routine", count: 721, pct: 85, color: "#00d4aa" },
+      { level: "Urgent", count: 114, pct: 13, color: "#ffb347" },
+      { level: "Emergency", count: 12, pct: 2, color: "#ff4757" },
     ],
 
     // AI performance
@@ -169,7 +182,9 @@ export default function AnalyticsPage() {
             {/* Hourly Throughput Bar Chart */}
             <GlassCard hoverable={false} className="chart-card wide animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
               <div className="chart-header">
-                <h2>⏱️ Hourly Patient Throughput</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Clock size={18} /> Hourly Patient Throughput
+                </h2>
                 <div className="chart-legend">
                   <span className="legend-dot" style={{ background: "#00d4aa" }} /> Actual
                   <span className="legend-dot" style={{ background: "rgba(255,255,255,0.15)" }} /> Target
@@ -209,15 +224,20 @@ export default function AnalyticsPage() {
             {/* Department Distribution */}
             <GlassCard hoverable={false} className="chart-card animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
               <div className="chart-header">
-                <h2>🏥 Department Distribution</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Building2 size={18} /> Department Distribution
+                </h2>
               </div>
               <div className="dept-list">
                 {data.departments.map((dept) => {
                   const pct = Math.round(dept.count / totalDepts * 100);
+                  const IconComponent = DEPT_ICONS[dept.name] || Building2;
                   return (
                     <div key={dept.name} className="dept-row">
                       <div className="dept-info">
-                        <span className="dept-icon">{dept.icon}</span>
+                        <span className="dept-icon" style={{ display: "inline-flex", alignItems: "center" }}>
+                          <IconComponent size={15} style={{ color: dept.color }} />
+                        </span>
                         <span className="dept-name">{dept.name}</span>
                         <span className="dept-count" style={{ color: dept.color }}>{dept.count}</span>
                       </div>
@@ -242,13 +262,18 @@ export default function AnalyticsPage() {
             {/* Priority Triage Breakdown */}
             <GlassCard hoverable={false} className="chart-card animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
               <div className="chart-header">
-                <h2>🚦 Triage Priority Breakdown</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Activity size={18} /> Triage Priority Breakdown
+                </h2>
               </div>
               <div className="priority-list">
                 {data.priorities.map((p) => (
                   <div key={p.level} className="priority-row">
                     <div className="priority-header">
-                      <span className="priority-label">{p.level}</span>
+                      <span className="priority-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color, display: "inline-block" }} />
+                        {p.level}
+                      </span>
                       <span className="priority-count" style={{ color: p.color }}>{p.count}</span>
                     </div>
                     <div className="priority-bar-bg">
@@ -266,13 +291,15 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
                 <div className="triage-note">
-                  <AlertTriangle size={12} /> All 🔴 Emergency cases instantly notified to triage staff via red-flag alert
+                  <AlertTriangle size={12} /> All Emergency cases instantly notified to triage staff via red-flag alert
                 </div>
               </div>
 
               {/* AI Stats */}
               <div className="ai-stats">
-                <div className="ai-stats-title">🤖 AI Performance Metrics</div>
+                <div className="ai-stats-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Bot size={15} /> AI Performance Metrics
+                </div>
                 {Object.entries(data.aiStats).map(([k, v]) => (
                   <div key={k} className="ai-stat-row">
                     <span className="ai-stat-label">
@@ -289,7 +316,9 @@ export default function AnalyticsPage() {
             {/* Language Distribution */}
             <GlassCard hoverable={false} className="chart-card animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
               <div className="chart-header">
-                <h2>🌐 Language Distribution</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Globe size={18} /> Language Distribution
+                </h2>
               </div>
 
               {/* Simple donut chart via SVG */}
@@ -339,7 +368,9 @@ export default function AnalyticsPage() {
             {/* Weekly Trend */}
             <GlassCard hoverable={false} className="chart-card animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
               <div className="chart-header">
-                <h2>📅 Weekly Patient Trend</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={18} /> Weekly Patient Trend
+                </h2>
               </div>
               <div className="weekly-chart">
                 {data.weekTrend.map((d, i) => {
@@ -378,7 +409,9 @@ export default function AnalyticsPage() {
             {/* Impact Summary */}
             <GlassCard hoverable={false} className="chart-card impact-card animate-fade-in-up" style={{ animationDelay: "0.45s" }}>
               <div className="chart-header">
-                <h2>📈 Impact vs Manual Process</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <TrendingUp size={18} /> Impact vs Manual Process
+                </h2>
               </div>
               <div className="impact-list">
                 {[
@@ -392,9 +425,11 @@ export default function AnalyticsPage() {
                   <div key={i} className="impact-row">
                     <div className="impact-metric">{item.metric}</div>
                     <div className="impact-comparison">
-                      <span className="impact-before">📋 {item.before}</span>
+                      <span className="impact-before">{item.before}</span>
                       <span className="impact-arrow">→</span>
-                      <span className="impact-after" style={{ color: item.color }}>✓ {item.after}</span>
+                      <span className="impact-after" style={{ color: item.color, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Check size={13} /> {item.after}
+                      </span>
                     </div>
                     <span className="impact-saving" style={{ color: item.color }}>{item.saving}</span>
                   </div>

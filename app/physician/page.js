@@ -18,6 +18,13 @@ import {
   Sparkles,
   Download,
   FileCode,
+  Target,
+  ClipboardList,
+  FolderOpen,
+  Pill,
+  User,
+  Search,
+  Info,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -179,14 +186,14 @@ function sessionToPatient(session) {
 
 /** The editable clinical fields displayed in the detail panel */
 const SUMMARY_FIELDS = [
-  { key: "chiefComplaint", label: "Chief Complaint", icon: "🎯" },
-  { key: "hpi", label: "History of Present Illness", icon: "📋", multiline: true },
-  { key: "pastHistory", label: "Past Medical / Surgical History", icon: "📁", multiline: true },
-  { key: "drugs", label: "Current Medications", icon: "💊", multiline: true },
-  { key: "allergies", label: "Allergy History", icon: "⚠️" },
-  { key: "family", label: "Family History", icon: "👨‍👩‍👧‍👦", multiline: true },
-  { key: "personal", label: "Personal History", icon: "🧑", multiline: true },
-  { key: "ros", label: "Review of Systems", icon: "🔍", multiline: true },
+  { key: "chiefComplaint", label: "Chief Complaint", icon: Target },
+  { key: "hpi", label: "History of Present Illness", icon: ClipboardList, multiline: true },
+  { key: "pastHistory", label: "Past Medical / Surgical History", icon: FolderOpen, multiline: true },
+  { key: "drugs", label: "Current Medications", icon: Pill, multiline: true },
+  { key: "allergies", label: "Allergy History", icon: AlertTriangle },
+  { key: "family", label: "Family History", icon: Users, multiline: true },
+  { key: "personal", label: "Personal History", icon: User, multiline: true },
+  { key: "ros", label: "Review of Systems", icon: Search, multiline: true },
 ];
 
 export default function PhysicianPage() {
@@ -355,19 +362,25 @@ export default function PhysicianPage() {
       urgent: "badge badge-warning",
       emergency: "badge badge-danger",
     };
-    const icons = { routine: "🟢", urgent: "🟡", emergency: "🔴" };
     return (
-      <span className={classes[priority] || "badge"}>
-        {icons[priority]} {priority?.toUpperCase()}
+      <span className={classes[priority] || "badge"} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+        <span style={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          display: "inline-block",
+          background: priority === "emergency" ? "#ff4757" : priority === "urgent" ? "#ffb347" : "#00d4aa"
+        }} />
+        {priority?.toUpperCase()}
       </span>
     );
   };
 
   const getStatusBadge = (status) => {
     if (status === "completed" || status === "accepted")
-      return <span className="badge badge-success">✓ Done</span>;
-    if (status === "rejected") return <span className="badge badge-danger">✗ Rejected</span>;
-    return <span className="badge badge-warning">⏳ Waiting</span>;
+      return <span className="badge badge-success">Done</span>;
+    if (status === "rejected") return <span className="badge badge-danger">Rejected</span>;
+    return <span className="badge badge-warning">Waiting</span>;
   };
 
   if (!mounted) return null;
@@ -462,7 +475,7 @@ export default function PhysicianPage() {
                           </span>
                         )}
                         {patient.isEdited && (
-                          <span className="edited-badge">✏️ Edited</span>
+                          <span className="edited-badge">Edited</span>
                         )}
                       </div>
                       <p>
@@ -508,7 +521,7 @@ export default function PhysicianPage() {
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                         {getPriorityBadge(selectedPatient.priority)}
                         {selectedPatient.isEdited && (
-                          <span className="edited-badge">✏️ Amended by Physician</span>
+                          <span className="edited-badge">Amended by Physician</span>
                         )}
                       </div>
                     </div>
@@ -516,13 +529,11 @@ export default function PhysicianPage() {
                     {/* --- VIEW MODE --- */}
                     {!isEditing && (
                       <>
-                        {SUMMARY_FIELDS.map(({ key, label, icon }) => (
+                        {SUMMARY_FIELDS.map(({ key, label, icon: IconComponent }) => (
                           <div key={key} className="summary-section" style={{ marginTop: 12 }}>
                             <div className="summary-section-header">
-                              <Stethoscope size={14} />
-                              <h3>
-                                {icon} {label}
-                              </h3>
+                              {IconComponent ? <IconComponent size={14} /> : <Stethoscope size={14} />}
+                              <h3>{label}</h3>
                             </div>
                             <p style={{ fontSize: "0.88rem", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
                               {selectedPatient.summary[key] || "—"}
@@ -590,17 +601,17 @@ export default function PhysicianPage() {
                           <span>Physician Amendment Mode — Edit any field below</span>
                         </div>
 
-                        {SUMMARY_FIELDS.map(({ key, label, icon, multiline }) => (
+                        {SUMMARY_FIELDS.map(({ key, label, icon: IconComponent, multiline }) => (
                           <div key={key} className="edit-field-group">
-                            <label className="edit-label">
-                              {icon} {label}
+                            <label className="edit-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                              {IconComponent && <IconComponent size={14} />} {label}
                             </label>
                             {multiline ? (
                               <textarea
                                 className="edit-textarea"
                                 value={editDraft[key] || ""}
                                 onChange={(e) =>
-                                  setEditDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                                   setEditDraft((prev) => ({ ...prev, [key]: e.target.value }))
                                 }
                                 rows={key === "hpi" ? 5 : 3}
                                 id={`edit-${key}`}
@@ -611,7 +622,7 @@ export default function PhysicianPage() {
                                 className="input-field"
                                 value={editDraft[key] || ""}
                                 onChange={(e) =>
-                                  setEditDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                                   setEditDraft((prev) => ({ ...prev, [key]: e.target.value }))
                                 }
                                 id={`edit-${key}`}
                               />
@@ -647,10 +658,13 @@ export default function PhysicianPage() {
                         color: "var(--color-text-muted)",
                         textAlign: "center",
                         marginTop: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
                       }}
                     >
-                      ⚕️ AI-generated draft. Physician retains full control to accept, amend, or
-                      reject.
+                      <Info size={12} /> AI-generated draft. Physician retains full control to accept, amend, or reject.
                     </p>
                   </GlassCard>
                 </div>
@@ -668,7 +682,7 @@ export default function PhysicianPage() {
                       marginTop: 12,
                     }}
                   >
-                    💡 Click{" "}
+                    Click{" "}
                     <strong style={{ color: "var(--color-accent-primary)" }}>Refresh Queue</strong>{" "}
                     to load new patients from the kiosk
                   </p>

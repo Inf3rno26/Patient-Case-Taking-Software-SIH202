@@ -2,7 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Monitor, ArrowLeft, Volume2, RefreshCw, Tv } from "lucide-react";
+import {
+  Monitor,
+  ArrowLeft,
+  Volume2,
+  RefreshCw,
+  Tv,
+  Stethoscope,
+  Heart,
+  Bone,
+  Leaf,
+  Users,
+  Smile,
+  Brain,
+  Building2,
+  Bell,
+  Ticket,
+} from "lucide-react";
 
 /**
  * MediKiosk Token Queue — Live OPD Queue Display
@@ -10,15 +26,25 @@ import { Monitor, ArrowLeft, Volume2, RefreshCw, Tv } from "lucide-react";
  * Also shown to patient after interview completion
  */
 
+const DEPT_ICONS = {
+  "General Medicine": <Stethoscope size={18} />,
+  "Cardiology": <Heart size={18} />,
+  "Orthopedics": <Bone size={18} />,
+  "Ayurveda (AYUSH)": <Leaf size={18} />,
+  "Gynecology": <Users size={18} />,
+  "Pediatrics": <Smile size={18} />,
+  "Neurology": <Brain size={18} />,
+};
+
 function generateQueue() {
   const depts = [
-    { dept: "General Medicine", color: "#00d4aa", icon: "🩺", room: "OPD-1" },
-    { dept: "Cardiology", color: "#ff4757", icon: "❤️", room: "OPD-4" },
-    { dept: "Orthopedics", color: "#4db8ff", icon: "🦴", room: "OPD-7" },
-    { dept: "Ayurveda (AYUSH)", color: "#ff9933", icon: "🌿", room: "OPD-12" },
-    { dept: "Gynecology", color: "#ff6b81", icon: "🌸", room: "OPD-9" },
-    { dept: "Pediatrics", color: "#ffd93d", icon: "👶", room: "OPD-6" },
-    { dept: "Neurology", color: "#a29bfe", icon: "🧠", room: "OPD-3" },
+    { dept: "General Medicine", color: "#00d4aa", room: "OPD-1" },
+    { dept: "Cardiology", color: "#ff4757", room: "OPD-4" },
+    { dept: "Orthopedics", color: "#4db8ff", room: "OPD-7" },
+    { dept: "Ayurveda (AYUSH)", color: "#ff9933", room: "OPD-12" },
+    { dept: "Gynecology", color: "#ff6b81", room: "OPD-9" },
+    { dept: "Pediatrics", color: "#ffd93d", room: "OPD-6" },
+    { dept: "Neurology", color: "#a29bfe", room: "OPD-3" },
   ];
 
   return depts.map((d) => ({
@@ -41,13 +67,14 @@ export default function TokenQueuePage() {
   const [myToken, setMyToken] = useState(null);
 
   const ANNOUNCEMENTS = [
-    "🎙️ Token MK-187 — Please proceed to OPD-1 (General Medicine)",
-    "⚠️ Red Flag Alert: Token MK-203 redirected to Emergency Department",
-    "📋 ABHA linking saves time — register at the MediKiosk terminal",
-    "🌿 Ayurveda (AYUSH) OPD now open — Token MK-251 onwards",
-    "💊 Please carry all prescriptions and reports to your consultation",
-    "📞 Token SMS alerts enabled — check your registered mobile number",
+    "Token MK-187 — Please proceed to OPD-1 (General Medicine)",
+    "Red Flag Alert: Token MK-203 redirected to Emergency Department",
+    "ABHA linking saves time — register at the MediKiosk terminal",
+    "Ayurveda (AYUSH) OPD now open — Token MK-251 onwards",
+    "Please carry all prescriptions and reports to your consultation",
+    "Token SMS alerts enabled — check your registered mobile number",
   ];
+
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +108,7 @@ export default function TokenQueuePage() {
             </button>
           )}
           <div className="hospital-brand">
-            <div className="brand-icon">🏥</div>
+            <div className="brand-icon"><Building2 size={20} /></div>
             <div>
               <div className="brand-name">MediKiosk OPD Queue</div>
               <div className="brand-sub">Live Token Display System</div>
@@ -119,7 +146,7 @@ export default function TokenQueuePage() {
       {myToken && (
         <div className="my-token-banner">
           <div className="my-token-left">
-            <span className="my-token-label">🎫 Your Token:</span>
+            <span className="my-token-label"><Ticket size={16} /> Your Token:</span>
             <span className="my-token-number">{myToken}</span>
           </div>
           <div className="my-token-right">
@@ -131,7 +158,7 @@ export default function TokenQueuePage() {
 
       {/* Token ticker */}
       <div className="announcement-ticker">
-        <div className="ticker-icon">📢</div>
+        <div className="ticker-icon"><Bell size={18} /></div>
         <div className="ticker-text" key={tickerIndex}>
           {ANNOUNCEMENTS[tickerIndex]}
         </div>
@@ -148,7 +175,7 @@ export default function TokenQueuePage() {
             {/* Card header */}
             <div className="dept-card-header" style={{ borderBottomColor: `${dept.color}30` }}>
               <div className="dept-identity">
-                <span className="dept-card-icon">{dept.icon}</span>
+                <span className="dept-card-icon">{DEPT_ICONS[dept.dept] || <Building2 size={18} />}</span>
                 <div>
                   <div className="dept-card-name">{dept.dept}</div>
                   <div className="dept-room">{dept.room} · {dept.doctor}</div>
@@ -163,9 +190,10 @@ export default function TokenQueuePage() {
 
             {/* Now serving */}
             <div className="now-serving" style={{ background: `${dept.color}12` }}>
-              <div className="now-label">🔔 NOW SERVING</div>
+              <div className="now-label">NOW SERVING</div>
               <div className="now-token" style={{ color: dept.color }}>{dept.now}</div>
             </div>
+
 
             {/* Next tokens */}
             <div className="next-tokens">

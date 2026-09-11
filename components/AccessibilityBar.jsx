@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Eye, Type, Volume2, Sparkles, X, SlidersHorizontal } from "lucide-react";
+import { Eye, Type, Volume2, Sparkles, X, SlidersHorizontal, Palette } from "lucide-react";
 import { speakText } from "@/lib/languages";
+import ToneSwitcher from "@/components/ToneSwitcher";
+
 
 export default function AccessibilityBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -148,7 +150,17 @@ export default function AccessibilityBar() {
                 {slowSpeech ? "0.75x (Slow)" : "1.0x (Normal)"}
               </button>
             </div>
+
+            {/* Two-Tone Color Theme Selection */}
+            <div className="a11y-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
+              <div className="option-label">
+                <Palette size={16} />
+                <span>Two-Tone Theme / रंग टोन</span>
+              </div>
+              <ToneSwitcher compact={false} showLabel={false} />
+            </div>
           </div>
+
 
           <div className="a11y-footer">
             <span className="a11y-footer-note">Designed for non-tech-savvy & elderly patients</span>

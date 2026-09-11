@@ -1,9 +1,43 @@
 import { NextResponse } from "next/server";
-import { getConversationModel } from "@/lib/gemini";
-import {
-  CLINICAL_INTERVIEW_SYSTEM_PROMPT,
-  AYUSH_INTERVIEW_EXTENSION,
-} from "@/lib/prompts";
+import { generateContentWithFallback } from "@/lib/gemini";
+import { buildGroundedSystemPrompt } from "@/lib/prompts";
+
+// Strip emoji/icon characters from a string
+function stripEmoji(str) {
+  if (!str) return str;
+  return str
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}]/gu, "")
+    .replace(/[\u2702-\u27B0\u24C2]/gu, "")
+    .trim();
+}
+
+/**
+ * Robustly extract the first valid JSON object from a model response.
+ * Handles: plain JSON, markdown code blocks, extra prose before/after.
+ */
+function extractJSON(text) {
+  if (!text) return null;
+  // Try direct parse first
+  try { return JSON.parse(text); } catch (_) {}
+  // Try extracting from ```json ... ``` block
+  const mdMatch = text.match(/```(?:json)?\s*([\s\S]+?)```/);
+  if (mdMatch) {
+    try { return JSON.parse(mdMatch[1].trim()); } catch (_) {}
+  }
+  // Try extracting the first { ... } block
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  // Walk to find the matching closing brace
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}") { depth--; if (depth === 0) {
+      try { return JSON.parse(text.slice(start, i + 1)); } catch (_) {}
+      break;
+    }}
+  }
+  return null;
+}
 
 export async function POST(request) {
   try {
@@ -23,43 +57,16 @@ export async function POST(request) {
       );
     }
 
-    try {
-      const model = getConversationModel();
+    // Extract complaint hint from the first patient message in history
+    const firstPatientMsg = conversationHistory.find((m) => m.role === "patient")?.text || message;
+    const complaintHint = firstPatientMsg.toLowerCase().split(/[\s,]+/).slice(0, 3).join(" ");
 
-      // Build the system instruction
+    try {
+      // Build grounded system prompt with few-shot training examples
+      const systemPrompt = buildGroundedSystemPrompt(language, currentSection, isAyush, complaintHint);
+
       const isEnglish = !language || language === "en" || language.startsWith("en");
       const isHindi = language === "hi" || language.startsWith("hi");
-
-      // Build the system instruction
-      let systemPrompt = CLINICAL_INTERVIEW_SYSTEM_PROMPT;
-      if (isAyush) {
-        systemPrompt += "\n\n" + AYUSH_INTERVIEW_EXTENSION;
-      }
-
-      // Add strict language instruction
-      if (isEnglish) {
-        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
-- The patient's selected consultation language is ENGLISH (en-IN).
-- You MUST generate "response" in 100% ENGLISH.
-- You MUST generate ALL "options[].text" in 100% ENGLISH.
-- "response_english" MUST ALSO be in 100% ENGLISH.
-- ABSOLUTELY DO NOT output any Hindi, Devanagari script (e.g. कोई, दर्द, बुखार), or Hinglish words anywhere.
-- Never switch to Hindi. Keep all questions, clinical acknowledgments, and touch options in clear, natural English.
-Current interview section: ${currentSection}.`;
-      } else if (isHindi) {
-        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
-- The patient's selected consultation language is HINDI (hi-IN).
-- You MUST generate "response" in simple, respectful conversational HINDI (Devanagari script).
-- You MUST generate "options[].text" in HINDI (Devanagari script).
-- "response_english" must contain the English translation.
-Current interview section: ${currentSection}.`;
-      } else {
-        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
-- The patient's selected consultation language is ${language}.
-- You MUST generate "response" and "options[].text" in ${language}.
-- "response_english" must contain the English translation.
-Current interview section: ${currentSection}.`;
-      }
 
       // Build chat history for context
       const chatHistory = conversationHistory.map((msg) => ({
@@ -67,7 +74,6 @@ Current interview section: ${currentSection}.`;
         parts: [{ text: msg.text }],
       }));
 
-      // Initial greeting for history
       const initialGreeting = isEnglish
         ? "Hello! I am MediKiosk AI. What brings you to the hospital today?"
         : isHindi
@@ -76,60 +82,51 @@ Current interview section: ${currentSection}.`;
 
       const initialOptions = isEnglish
         ? [
-            { text: "Fever", text_english: "Fever", icon: "🤒" },
-            { text: "Pain", text_english: "Pain", icon: "😣" },
-            { text: "Cough", text_english: "Cough", icon: "😷" },
-            { text: "General checkup", text_english: "General checkup", icon: "🏥" },
-            { text: "Other", text_english: "Other", icon: "💬" },
+            { text: "Fever", text_english: "Fever" },
+            { text: "Pain", text_english: "Pain" },
+            { text: "Cough", text_english: "Cough" },
+            { text: "General checkup", text_english: "General checkup" },
+            { text: "Other", text_english: "Other" },
           ]
         : [
-            { text: "बुखार", text_english: "Fever", icon: "🤒" },
-            { text: "दर्द", text_english: "Pain", icon: "😣" },
-            { text: "खांसी", text_english: "Cough", icon: "😷" },
-            { text: "सामान्य जांच", text_english: "General checkup", icon: "🏥" },
-            { text: "अन्य", text_english: "Other", icon: "💬" },
+            { text: "बुखार", text_english: "Fever" },
+            { text: "दर्द", text_english: "Pain" },
+            { text: "खांसी", text_english: "Cough" },
+            { text: "सामान्य जांच", text_english: "General checkup" },
+            { text: "अन्य", text_english: "Other" },
           ];
 
-      // Start chat with system prompt
-      const chat = model.startChat({
-        history: [
-          {
-            role: "user",
-            parts: [{ text: `System Instructions: ${systemPrompt}` }],
-          },
-          {
-            role: "model",
-            parts: [
-              {
-                text: JSON.stringify({
-                  response: initialGreeting,
-                  response_english: "Hello! I am MediKiosk AI. What brings you to the hospital today?",
-                  options: initialOptions,
-                  section: "chief_complaint",
-                  progress: 0,
-                  isRedFlag: false,
-                  redFlagReason: null,
-                  extractedData: {},
-                }),
-              },
-            ],
-          },
-          ...chatHistory,
+      // Use generateContentWithFallback for consistent model failover
+      const { result } = await generateContentWithFallback(
+        [
+          `System Instructions:\n${systemPrompt}\n\n` +
+          `Previous conversation:\n${chatHistory.map(m => `${m.role === "model" ? "AI" : "PATIENT"}: ${m.parts[0].text}`).join("\n")}\n\n` +
+          `PATIENT: ${message}\n\nASSISTANT (respond ONLY with valid JSON):`,
         ],
-      });
+        {
+          temperature: 0.3,
+          maxOutputTokens: 4096,
+          responseMimeType: "application/json",
+        }
+      );
 
-      // Send the patient's message
-      const result = await chat.sendMessage(message);
       const responseText = result.response.text();
 
-      // Parse the AI response
-      let parsed;
-      try {
-        parsed = JSON.parse(responseText);
-      } catch (e) {
+      // Parse the AI response robustly
+      let parsed = extractJSON(responseText);
+      if (!parsed || typeof parsed.response !== "string") {
+        // If the model returned a JSON string inside the response field, unwrap it
+        if (parsed?.response && typeof parsed.response === "string" && parsed.response.trim().startsWith("{")) {
+          const inner = extractJSON(parsed.response);
+          if (inner && typeof inner.response === "string") parsed = inner;
+        }
+      }
+      if (!parsed || typeof parsed.response !== "string") {
+        // Last resort: treat as plain text response
+        const fallbackText = typeof responseText === "string" ? responseText.replace(/^[\s{"]*response["\s]*:[\s"]*/, "").slice(0, 300) : "I understand. Could you tell me more about your symptoms?";
         parsed = {
-          response: responseText,
-          response_english: responseText,
+          response: fallbackText || "Could you please describe your symptoms further?",
+          response_english: fallbackText || "Could you please describe your symptoms further?",
           options: [],
           section: currentSection,
           progress: 0,
@@ -139,38 +136,37 @@ Current interview section: ${currentSection}.`;
         };
       }
 
-      // STRICT POST-PROCESSING LANGUAGE GUARD
+      // STRICT POST-PROCESSING: language guard + emoji removal
       if (isEnglish) {
-        // If response contains Devanagari characters, replace with response_english
         const hasDevanagari = /[\u0900-\u097F]/.test(parsed.response || "");
         if (hasDevanagari && parsed.response_english) {
-          console.warn("[Language Guard] Intercepted Hindi response in English consultation. Swapped to English.");
           parsed.response = parsed.response_english;
         }
-        if (parsed.options && Array.isArray(parsed.options)) {
-          parsed.options = parsed.options.map((opt) => ({
-            ...opt,
-            text: /[\u0900-\u097F]/.test(opt.text || "") && opt.text_english
-              ? opt.text_english
-              : opt.text,
-          }));
-        }
+      }
+
+      // Clean options: remove icons and emoji from all option text
+      if (parsed.options && Array.isArray(parsed.options)) {
+        parsed.options = parsed.options.map((opt) => {
+          const cleanText = isEnglish && /[\u0900-\u097F]/.test(opt.text || "") && opt.text_english
+            ? opt.text_english
+            : opt.text;
+          return {
+            text: stripEmoji(cleanText),
+            text_english: stripEmoji(opt.text_english || cleanText),
+          };
+        });
       }
 
       return NextResponse.json(parsed);
     } catch (modelError) {
-      console.warn("Using smart fallback interview flow (Gemini Key not configured or unavailable):", modelError.message);
-      
+      console.warn("Using smart fallback interview flow:", modelError.message);
       const fallback = generateFallbackResponse(message, currentSection, language, conversationHistory.length);
       return NextResponse.json(fallback);
     }
   } catch (error) {
     console.error("Conversation API error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to process conversation",
-        details: error.message,
-      },
+      { error: "Failed to process conversation", details: error.message },
       { status: 500 }
     );
   }
@@ -190,12 +186,12 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
   if (hasRedFlag) {
     return {
       response: isHi
-        ? "⚠️ यह गंभीर लक्षण लग रहे हैं। क्या अभी बहुत तेज दर्द हो रहा है या सांस लेने में तकलीफ है?"
-        : "⚠️ These sound like serious symptoms. Are you in severe pain or having difficulty breathing right now?",
+        ? "यह गंभीर लक्षण लग रहे हैं। क्या अभी बहुत तेज दर्द हो रहा है या सांस लेने में तकलीफ है?"
+        : "These sound like serious symptoms. Are you in severe pain or having difficulty breathing right now?",
       response_english: "These sound like serious symptoms. Are you in severe pain or having difficulty breathing?",
       options: [
-        { text: isHi ? "हां, बहुत तेज़" : "Yes, very severe", text_english: "Yes, very severe", icon: "🚨" },
-        { text: isHi ? "नहीं, सहनीय है" : "No, manageable", text_english: "No, manageable", icon: "👍" },
+        { text: isHi ? "हां, बहुत तेज़" : "Yes, very severe", text_english: "Yes, very severe" },
+        { text: isHi ? "नहीं, सहनीय है" : "No, manageable", text_english: "No, manageable" },
       ],
       section: "hpi",
       progress: 20,
@@ -213,14 +209,14 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : `Understood. How long have you had this problem, and how severe does it feel (1–10)?`,
       response_english: "How long have you had this problem, and how severe is it (1–10)?",
       options: [
-        { text: isHi ? "आज से (1 दिन)" : "Started today", text_english: "Started today", icon: "⏱️" },
-        { text: isHi ? "2–3 दिनों से" : "2–3 days", text_english: "2–3 days", icon: "📅" },
-        { text: isHi ? "1 सप्ताह से" : "About 1 week", text_english: "About 1 week", icon: "🗓️" },
-        { text: isHi ? "1 महीने से ज़्यादा" : "More than a month", text_english: "More than a month", icon: "📆" },
-        { text: isHi ? "हल्का (1–3)" : "Mild (1–3)", text_english: "Mild (1–3)", icon: "🟢" },
-        { text: isHi ? "मध्यम (4–6)" : "Moderate (4–6)", text_english: "Moderate (4–6)", icon: "🟡" },
-        { text: isHi ? "गंभीर (7–10)" : "Severe (7–10)", text_english: "Severe (7–10)", icon: "🔴" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "आज से (1 दिन)" : "Started today", text_english: "Started today" },
+        { text: isHi ? "2–3 दिनों से" : "2–3 days", text_english: "2–3 days" },
+        { text: isHi ? "1 सप्ताह से" : "About 1 week", text_english: "About 1 week" },
+        { text: isHi ? "1 महीने से ज़्यादा" : "More than a month", text_english: "More than a month" },
+        { text: isHi ? "हल्का (1–3)" : "Mild (1–3)", text_english: "Mild (1–3)" },
+        { text: isHi ? "मध्यम (4–6)" : "Moderate (4–6)", text_english: "Moderate (4–6)" },
+        { text: isHi ? "गंभीर (7–10)" : "Severe (7–10)", text_english: "Severe (7–10)" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "hpi",
       progress: 15,
@@ -237,13 +233,13 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : "Do you have any existing medical conditions? Such as Diabetes, High Blood Pressure, Thyroid, or Heart disease?",
       response_english: "Do you have any existing medical conditions such as Diabetes, BP, Thyroid, or Heart disease?",
       options: [
-        { text: isHi ? "डायबिटीज (शुगर)" : "Diabetes", text_english: "Diabetes", icon: "🩺" },
-        { text: isHi ? "उच्च रक्तचाप (बीपी)" : "Hypertension (BP)", text_english: "Hypertension", icon: "💓" },
-        { text: isHi ? "थायराइड" : "Thyroid disease", text_english: "Thyroid", icon: "🦋" },
-        { text: isHi ? "दमा / अस्थमा" : "Asthma", text_english: "Asthma", icon: "🫁" },
-        { text: isHi ? "हृदय रोग" : "Heart disease", text_english: "Heart disease", icon: "❤️" },
-        { text: isHi ? "कोई पुरानी बीमारी नहीं" : "No past conditions", text_english: "No past conditions", icon: "✅" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "डायबिटीज (शुगर)" : "Diabetes", text_english: "Diabetes" },
+        { text: isHi ? "उच्च रक्तचाप (बीपी)" : "Hypertension (BP)", text_english: "Hypertension" },
+        { text: isHi ? "थायराइड" : "Thyroid disease", text_english: "Thyroid" },
+        { text: isHi ? "दमा / अस्थमा" : "Asthma", text_english: "Asthma" },
+        { text: isHi ? "हृदय रोग" : "Heart disease", text_english: "Heart disease" },
+        { text: isHi ? "कोई पुरानी बीमारी नहीं" : "No past conditions", text_english: "No past conditions" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "past_medical",
       progress: 30,
@@ -260,10 +256,10 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : "Are you currently taking any regular medications? Include any prescription or over-the-counter medicines.",
       response_english: "Are you currently taking any regular medications?",
       options: [
-        { text: isHi ? "हाँ, नियमित दवाएं हैं" : "Yes, on regular medicines", text_english: "Yes, regular meds", icon: "💊" },
-        { text: isHi ? "सिर्फ़ पेनकिलर/पैरासिटामोल" : "Only painkillers/Paracetamol", text_english: "Only painkillers", icon: "🩹" },
-        { text: isHi ? "कोई दवा नहीं" : "No medications", text_english: "No medications", icon: "❌" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "हाँ, नियमित दवाएं हैं" : "Yes, on regular medicines", text_english: "Yes, regular meds" },
+        { text: isHi ? "सिर्फ़ पेनकिलर/पैरासिटामोल" : "Only painkillers/Paracetamol", text_english: "Only painkillers" },
+        { text: isHi ? "कोई दवा नहीं" : "No medications", text_english: "No medications" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "drug_history",
       progress: 45,
@@ -280,12 +276,12 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : "Do you have any known allergies to medicines, food, or anything else?",
       response_english: "Do you have any known allergies to medicines, food, or anything else?",
       options: [
-        { text: isHi ? "पेनिसिलिन से एलर्जी" : "Penicillin allergy", text_english: "Penicillin", icon: "⚠️" },
-        { text: isHi ? "सल्फा दवाओं से" : "Sulfa drugs", text_english: "Sulfa drugs", icon: "⚠️" },
-        { text: isHi ? "खाने से एलर्जी" : "Food allergy", text_english: "Food allergy", icon: "🍽️" },
-        { text: isHi ? "धूल / पराग से" : "Dust / Pollen allergy", text_english: "Dust/Pollen", icon: "🌿" },
-        { text: isHi ? "कोई एलर्जी नहीं (NKDA)" : "No known drug allergies (NKDA)", text_english: "No known allergies", icon: "✅" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "पेनिसिलिन से एलर्जी" : "Penicillin allergy", text_english: "Penicillin" },
+        { text: isHi ? "सल्फा दवाओं से" : "Sulfa drugs", text_english: "Sulfa drugs" },
+        { text: isHi ? "खाने से एलर्जी" : "Food allergy", text_english: "Food allergy" },
+        { text: isHi ? "धूल / पराग से" : "Dust / Pollen allergy", text_english: "Dust/Pollen" },
+        { text: isHi ? "कोई एलर्जी नहीं (NKDA)" : "No known drug allergies (NKDA)", text_english: "No known allergies" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "allergy_history",
       progress: 60,
@@ -302,13 +298,13 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : "Do any of your close family members — parents, siblings — have or had any significant illnesses?",
       response_english: "Do any close family members have significant illnesses?",
       options: [
-        { text: isHi ? "पिता को डायबिटीज / बीपी" : "Father — Diabetes / BP", text_english: "Father - Diabetes/BP", icon: "👨" },
-        { text: isHi ? "माता को डायबिटीज / बीपी" : "Mother — Diabetes / BP", text_english: "Mother - Diabetes/BP", icon: "👩" },
-        { text: isHi ? "परिवार में हृदय रोग" : "Family heart disease", text_english: "Heart disease in family", icon: "❤️" },
-        { text: isHi ? "परिवार में कैंसर" : "Cancer in family", text_english: "Cancer in family", icon: "🔬" },
-        { text: isHi ? "परिवार में टीबी" : "TB in family", text_english: "TB in family", icon: "🫁" },
-        { text: isHi ? "कोई विशेष बीमारी नहीं" : "No significant family history", text_english: "No family history", icon: "✅" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "पिता को डायबिटीज / बीपी" : "Father — Diabetes / BP", text_english: "Father - Diabetes/BP" },
+        { text: isHi ? "माता को डायबिटीज / बीपी" : "Mother — Diabetes / BP", text_english: "Mother - Diabetes/BP" },
+        { text: isHi ? "परिवार में हृदय रोग" : "Family heart disease", text_english: "Heart disease in family" },
+        { text: isHi ? "परिवार में कैंसर" : "Cancer in family", text_english: "Cancer in family" },
+        { text: isHi ? "परिवार में टीबी" : "TB in family", text_english: "TB in family" },
+        { text: isHi ? "कोई विशेष बीमारी नहीं" : "No significant family history", text_english: "No family history" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "family_history",
       progress: 75,
@@ -325,12 +321,12 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
         : "Tell me about your lifestyle — do you smoke or drink? What is your diet like?",
       response_english: "Tell me about your lifestyle — smoking, alcohol, diet?",
       options: [
-        { text: isHi ? "धूम्रपान करता/करती हूँ" : "I smoke", text_english: "Smoker", icon: "🚬" },
-        { text: isHi ? "शराब पीता/पीती हूँ" : "I drink alcohol", text_english: "Alcohol", icon: "🍺" },
-        { text: isHi ? "शाकाहारी भोजन" : "Vegetarian diet", text_english: "Vegetarian", icon: "🥗" },
-        { text: isHi ? "मांसाहारी भोजन" : "Non-vegetarian diet", text_english: "Non-vegetarian", icon: "🍖" },
-        { text: isHi ? "न धूम्रपान, न शराब" : "No smoking / No alcohol", text_english: "Non-smoker, teetotaler", icon: "✅" },
-        { text: isHi ? "अन्य" : "Other", text_english: "Other", icon: "💬" },
+        { text: isHi ? "धूम्रपान करता/करती हूँ" : "I smoke", text_english: "Smoker" },
+        { text: isHi ? "शराब पीता/पीती हूँ" : "I drink alcohol", text_english: "Alcohol" },
+        { text: isHi ? "शाकाहारी भोजन" : "Vegetarian diet", text_english: "Vegetarian" },
+        { text: isHi ? "मांसाहारी भोजन" : "Non-vegetarian diet", text_english: "Non-vegetarian" },
+        { text: isHi ? "न धूम्रपान, न शराब" : "No smoking / No alcohol", text_english: "Non-smoker, teetotaler" },
+        { text: isHi ? "अन्य" : "Other", text_english: "Other" },
       ],
       section: "personal_history",
       progress: 88,
@@ -346,8 +342,8 @@ function generateFallbackResponse(message, currentSection, language, turnCount) 
       : "Thank you! Your complete clinical history has been recorded. You can now scan your medical documents or view your clinical summary.",
     response_english: "Your clinical history has been recorded. Proceed to scan documents or view summary.",
     options: [
-      { text: isHi ? "दस्तावेज़ स्कैन करें" : "Scan Documents", text_english: "Scan Documents", icon: "📄" },
-      { text: isHi ? "सारांश देखें" : "View Summary", text_english: "View Summary", icon: "📋" },
+      { text: isHi ? "दस्तावेज़ स्कैन करें" : "Scan Documents", text_english: "Scan Documents" },
+      { text: isHi ? "सारांश देखें" : "View Summary", text_english: "View Summary" },
     ],
     section: "complete",
     progress: 100,

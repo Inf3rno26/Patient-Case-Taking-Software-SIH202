@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, AlertCircle, FileText, Pill, Eye, X, Stethoscope, FileCheck, ShieldCheck, Activity } from "lucide-react";
+import { Calendar, AlertCircle, FileText, Pill, Eye, X, Stethoscope, FileCheck, ShieldCheck, Activity, FlaskConical, Building2, Camera, Paperclip, Info } from "lucide-react";
 
 export default function MedicalTimeline({ documents = [] }) {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -25,11 +25,11 @@ export default function MedicalTimeline({ documents = [] }) {
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case "prescription": return "💊";
-      case "lab_report": return "🧪";
-      case "discharge_summary": return "🏥";
-      case "imaging_report": return "📷";
-      default: return "📄";
+      case "prescription": return <Pill size={16} />;
+      case "lab_report": return <FlaskConical size={16} />;
+      case "discharge_summary": return <Building2 size={16} />;
+      case "imaging_report": return <Camera size={16} />;
+      default: return <FileText size={16} />;
     }
   };
 
@@ -75,11 +75,13 @@ export default function MedicalTimeline({ documents = [] }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <h4>{getTypeLabel(doc.documentType)}</h4>
                     {doc.fileName && (
-                      <span className="doc-filename-badge">📎 {doc.fileName}</span>
+                      <span className="doc-filename-badge" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Paperclip size={11} /> {doc.fileName}
+                      </span>
                     )}
                     {doc.offlineNotice && (
                       <span className="badge badge-warning" style={{ fontSize: "0.68rem" }}>
-                        ⚡ {doc.offlineNotice}
+                        {doc.offlineNotice}
                       </span>
                     )}
                   </div>
@@ -96,8 +98,8 @@ export default function MedicalTimeline({ documents = [] }) {
                       </span>
                     )}
                     {doc.facility && (
-                      <span className="timeline-facility-pill">
-                        🏢 {doc.facility}
+                      <span className="timeline-facility-pill" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Building2 size={12} /> {doc.facility}
                       </span>
                     )}
                   </div>
@@ -122,7 +124,7 @@ export default function MedicalTimeline({ documents = [] }) {
               {/* Diagnoses / Clinical Impression */}
               {doc.diagnoses?.length > 0 && (
                 <div className="timeline-section">
-                  <strong className="section-label">🎯 Clinical Diagnoses & Indications:</strong>
+                  <strong className="section-label">Clinical Diagnoses & Indications:</strong>
                   <div className="timeline-tags">
                     {doc.diagnoses.map((d, i) => (
                       <span key={i} className="diagnosis-tag">
@@ -137,7 +139,7 @@ export default function MedicalTimeline({ documents = [] }) {
               {/* Prescribed Medications */}
               {doc.medications?.length > 0 && (
                 <div className="timeline-section">
-                  <strong className="section-label">💊 Prescribed Medications (Rx):</strong>
+                  <strong className="section-label">Prescribed Medications (Rx):</strong>
                   <div className="meds-cards-grid">
                     {doc.medications.map((m, i) => (
                       <div key={i} className="med-card">
@@ -151,7 +153,9 @@ export default function MedicalTimeline({ documents = [] }) {
                           {m.duration && <span className="med-detail-badge duration">{m.duration}</span>}
                         </div>
                         {m.instructions && (
-                          <span className="med-instructions">ℹ️ {m.instructions}</span>
+                          <span className="med-instructions" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Info size={11} /> {m.instructions}
+                          </span>
                         )}
                       </div>
                     ))}
@@ -162,7 +166,7 @@ export default function MedicalTimeline({ documents = [] }) {
               {/* Diagnostic Lab Tests */}
               {doc.labValues?.length > 0 && (
                 <div className="timeline-section">
-                  <strong className="section-label">🧪 Diagnostic Laboratory Investigations:</strong>
+                  <strong className="section-label">Diagnostic Laboratory Investigations:</strong>
                   <div className="lab-values-grid">
                     {doc.labValues.map((v, i) => (
                       <div key={i} className={`lab-value-card ${v.isAbnormal ? "abnormal" : "normal"}`}>
@@ -194,7 +198,7 @@ export default function MedicalTimeline({ documents = [] }) {
               {/* Key Clinical Findings */}
               {doc.keyFindings?.length > 0 && (
                 <div className="timeline-section">
-                  <strong className="section-label">📋 Key Clinical Findings:</strong>
+                  <strong className="section-label">Key Clinical Findings:</strong>
                   <ul className="timeline-findings">
                     {doc.keyFindings.map((f, i) => (
                       <li key={i}>{typeof f === "string" ? f : f.text || JSON.stringify(f)}</li>
@@ -206,7 +210,7 @@ export default function MedicalTimeline({ documents = [] }) {
               {/* Follow-up */}
               {doc.followUp && (
                 <div className="timeline-section timeline-followup">
-                  <strong className="section-label">🩺 Physician Instructions & Follow-up:</strong>
+                  <strong className="section-label">Physician Instructions & Follow-up:</strong>
                   <p>{doc.followUp}</p>
                 </div>
               )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Circle } from "lucide-react";
 
 export default function TouchOptions({
   options = [],
@@ -56,7 +56,13 @@ export default function TouchOptions({
               aria-pressed={isSelected}
             >
               <span className="option-icon">
-                {isSelected ? <Check size={20} /> : icon ? <span style={{ fontSize: "1.3rem" }}>{icon}</span> : <span style={{ fontSize: "1.3rem" }}>🔘</span>}
+                {isSelected ? (
+                  <Check size={20} color="var(--color-accent-primary)" />
+                ) : icon ? (
+                  typeof icon === "string" ? <span>{icon}</span> : icon
+                ) : (
+                  <Circle size={18} style={{ opacity: 0.4 }} />
+                )}
               </span>
               <span className="option-text">{text}</span>
             </button>

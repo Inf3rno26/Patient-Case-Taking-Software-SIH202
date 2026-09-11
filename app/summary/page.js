@@ -19,8 +19,13 @@ import {
   Edit3,
   Save,
   X,
+  Check,
   FileCheck,
   FileCode,
+  Lock,
+  Clock,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -32,8 +37,9 @@ import { speakText } from "@/lib/languages";
 
 export default function SummaryPage() {
   const router = useRouter();
-  const { session, language, setSummary: saveSessionSummary, updateSession, clearSession } = usePatient();
+  const { session, language, setSummary: saveSessionSummary, updateSession, clearSession, loadDemoSession } = usePatient();
   const [summary, setSummary] = useState(null);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -125,15 +131,18 @@ export default function SummaryPage() {
 
   // Auto-generate on mount
   useEffect(() => {
-    if (mounted && !summary && !isGenerating && session) {
-      // If summary already exists in session, use it
-      if (session.summary) {
+    if (mounted && !summary && !isGenerating) {
+      if (session?.summary) {
         setSummary(session.summary);
-      } else {
+      } else if (session) {
         generateSummary();
+      } else {
+        // If visited directly without session, load realistic demo session so summary is always functional
+        loadDemoSession(language || "en-IN");
       }
     }
-  }, [mounted, summary, isGenerating, generateSummary, session]);
+  }, [mounted, summary, isGenerating, generateSummary, session, loadDemoSession, language]);
+
 
   const handleSpeak = () => {
     if (summary?.summaryLocalLanguage) {
@@ -370,7 +379,9 @@ export default function SummaryPage() {
                 alignItems: 'center',
                 gap: 12
               }}>
-                <span style={{ fontSize: '1.5rem' }}>{isWiped ? '🔒' : '⏱️'}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  {isWiped ? <Lock size={22} style={{ color: 'var(--color-accent-primary)' }} /> : <Clock size={22} style={{ color: 'var(--color-accent-warning)' }} />}
+                </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                     <strong style={{ color: isWiped ? 'var(--color-accent-primary)' : 'var(--color-accent-warning)', fontSize: '0.88rem' }}>
@@ -417,7 +428,7 @@ export default function SummaryPage() {
                   </div>
                 </div>
                 <p style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 12 }}>
-                  📱 Physician scans QR or enters token to immediately review pre-consultation summary
+                  Physician scans QR or enters token to immediately review pre-consultation summary
                 </p>
               </div>
 
@@ -482,7 +493,7 @@ export default function SummaryPage() {
           {/* Generating */}
           {isGenerating && (
             <GlassCard hoverable={false} style={{ textAlign: "center", padding: "60px 20px" }}>
-              <LoadingPulse text="🧠 Generating structured clinical summary..." size="large" />
+              <LoadingPulse text="Generating structured clinical summary..." size="large" />
             </GlassCard>
           )}
 
@@ -668,7 +679,9 @@ export default function SummaryPage() {
                             {sec.isAllergy && (
                               <div>
                                 {sec.content.noKnownAllergies ? (
-                                  <p style={{ color: "var(--color-accent-primary)" }}>✓ No known allergies (NKDA)</p>
+                                  <p style={{ color: "var(--color-accent-primary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                    <Check size={14} /> No known allergies (NKDA)
+                                  </p>
                                 ) : (
                                   <div>
                                     {sec.content.drugs?.map((a, i) => (
@@ -731,8 +744,8 @@ export default function SummaryPage() {
                                       <div className="lab-box-top">
                                         <span className="lab-box-test">{lab.test}</span>
                                         {lab.isAbnormal ? (
-                                          <span className="badge badge-danger print-badge" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
-                                            ⚠️ ABNORMAL
+                                          <span className="badge badge-danger print-badge" style={{ fontSize: '0.68rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                            <AlertCircle size={10} /> ABNORMAL
                                           </span>
                                         ) : (
                                           <span className="badge print-badge" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
@@ -825,8 +838,8 @@ export default function SummaryPage() {
                     </div>
                     
                     {/* Disclaimer */}
-                    <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--color-text-muted)", marginTop: 20, lineHeight: 1.6 }}>
-                      ⚕️ This is an AI-generated draft summary. You may edit details before submitting.
+                    <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--color-text-muted)", marginTop: 20, lineHeight: 1.6, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                      <Info size={13} /> This is an AI-generated draft summary. You may edit details before submitting.
                     </p>
                   </>
                 )}

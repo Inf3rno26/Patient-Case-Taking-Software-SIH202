@@ -85,7 +85,8 @@ export default function DrugInteractionCard({ interactions = [], scannedMeds = [
                 className={`filter-pill ayush ${selectedCategory === "ayush" ? "active" : ""}`}
                 onClick={() => setSelectedCategory("ayush")}
               >
-                🌿 AYUSH Herb-Drug ({interactions.filter(i => i.category.includes("AYUSH")).length})
+                <Leaf size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
+                AYUSH Herb-Drug ({interactions.filter(i => i.category.includes("AYUSH")).length})
               </button>
             </div>
           )}

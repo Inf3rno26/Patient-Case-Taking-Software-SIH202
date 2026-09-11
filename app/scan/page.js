@@ -125,7 +125,7 @@ function ScanContent() {
           {/* Analysis Progress */}
           {isAnalyzing && (
             <GlassCard hoverable={false} style={{ marginTop: 24 }}>
-              <LoadingPulse text="🔍 Analyzing documents with AI... Extracting diagnoses, medications, and lab values" size="large" />
+              <LoadingPulse text="Analyzing documents with AI... Extracting diagnoses, medications, and lab values" size="large" />
             </GlassCard>
           )}
 

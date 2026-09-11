@@ -41,12 +41,6 @@ export default function RiskScoreCard({ patientData, compact = false }) {
   const circumference = Math.PI * radius; // Half circle
   const dashOffset = circumference - (composite / 100) * circumference;
 
-  const triageEmoji =
-    triageLevel === "Routine" ? "🟢" :
-    triageLevel === "Priority" ? "🔵" :
-    triageLevel === "Urgent" ? "🟡" :
-    "🔴";
-
   const applicableScores = allScores.filter(s => s.applicable);
 
   return (
@@ -130,8 +124,9 @@ export default function RiskScoreCard({ patientData, compact = false }) {
 
         {/* Triage level */}
         <div className="triage-info">
-          <div className="triage-badge" style={{ borderColor: triageColor, color: triageColor }}>
-            {triageEmoji} {triageLevel}
+          <div className="triage-badge" style={{ borderColor: triageColor, color: triageColor, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: triageColor, display: "inline-block" }} />
+            {triageLevel}
           </div>
           <div className="triage-frameworks">
             {applicableScores.map((s) => (
@@ -206,8 +201,8 @@ export default function RiskScoreCard({ patientData, compact = false }) {
       )}
 
       {/* Disclaimer */}
-      <p className="risk-disclaimer">
-        ⚕️ AI-estimated from conversational data — verify with clinical assessment
+      <p className="risk-disclaimer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+        <Info size={11} /> AI-estimated from conversational data — verify with clinical assessment
       </p>
 
       <style jsx>{`

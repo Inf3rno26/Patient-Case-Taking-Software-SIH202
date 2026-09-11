@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, Volume2, Check, X } from "lucide-react";
+import { Shield, Volume2, Check, X, FileText, UserCheck, Link2 } from "lucide-react";
 import { speakText } from "@/lib/languages";
 
 export default function ConsentModal({ language = "en-IN", onAccept, onDecline }) {
@@ -20,7 +20,7 @@ export default function ConsentModal({ language = "en-IN", onAccept, onDecline }
       description: isHindi
         ? "मैं अपनी मेडिकल हिस्ट्री AI द्वारा रिकॉर्ड करने की अनुमति देता/देती हूँ।"
         : "I allow my medical history to be recorded by the AI system during this session.",
-      icon: "📋",
+      icon: <FileText size={20} color="var(--color-accent-primary)" />,
     },
     {
       key: "dataSharing",
@@ -28,7 +28,7 @@ export default function ConsentModal({ language = "en-IN", onAccept, onDecline }
       description: isHindi
         ? "मेरी मेडिकल जानकारी मेरे डॉक्टर के साथ साझा की जा सकती है।"
         : "My medical information may be shared with my consulting physician for treatment purposes.",
-      icon: "👨‍⚕️",
+      icon: <UserCheck size={20} color="var(--color-accent-primary)" />,
     },
     {
       key: "abhaLinking",
@@ -36,7 +36,7 @@ export default function ConsentModal({ language = "en-IN", onAccept, onDecline }
       description: isHindi
         ? "मेरा रिकॉर्ड मेरी ABHA ID से जोड़ा जा सकता है। (वैकल्पिक)"
         : "My record may be linked to my ABHA ID for digital health records. (Optional)",
-      icon: "🔗",
+      icon: <Link2 size={20} color="var(--color-accent-primary)" />,
     },
   ];
 
