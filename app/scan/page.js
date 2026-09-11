@@ -41,6 +41,7 @@ function ScanContent() {
           body: JSON.stringify({
             image: file.base64,
             mimeType: file.type,
+            fileName: file.name,
           }),
         });
 

@@ -10,6 +10,9 @@ import {
   UserPlus,
   Hash,
   Calendar,
+  Minus,
+  Plus,
+  UserCheck,
 } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import GlassCard from "@/components/ui/GlassCard";
@@ -354,49 +357,100 @@ function RegisterContent() {
                   </div>
 
                   <div className="form-row">
-                    <div className="form-group">
-                      <label>
-                        <Calendar size={16} /> Age / उम्र
+                    <div className="form-group age-group-container">
+                      <label htmlFor="age-input">
+                        <Calendar size={16} /> Age / उम्र (in Years / वर्ष)
                       </label>
-                      <input
-                        type="number"
-                        className="input-field input-large"
-                        placeholder="Age"
-                        value={form.age}
-                        onChange={(e) =>
-                          setForm((p) => ({ ...p, age: e.target.value }))
-                        }
-                        min="0"
-                        max="150"
-                        id="age-input"
-                      />
+                      <div className="age-stepper-box">
+                        <button
+                          type="button"
+                          className="age-step-btn"
+                          onClick={() => {
+                            const cur = parseInt(form.age) || 0;
+                            if (cur > 1) setForm((p) => ({ ...p, age: String(cur - 1) }));
+                          }}
+                          disabled={!form.age || parseInt(form.age) <= 1}
+                          aria-label="Decrease age"
+                          id="age-decrement-btn"
+                        >
+                          <Minus size={18} />
+                        </button>
+                        <div className="age-input-wrap">
+                          <input
+                            type="number"
+                            className="age-direct-input"
+                            placeholder="e.g. 35"
+                            value={form.age}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              if (val === "" || (parseInt(val) >= 0 && parseInt(val) <= 125)) {
+                                setForm((p) => ({ ...p, age: val }));
+                              }
+                            }}
+                            min="1"
+                            max="125"
+                            id="age-input"
+                          />
+                          {form.age && <span className="age-unit-label">Yrs</span>}
+                        </div>
+                        <button
+                          type="button"
+                          className="age-step-btn"
+                          onClick={() => {
+                            const cur = parseInt(form.age) || 0;
+                            if (cur < 120) setForm((p) => ({ ...p, age: String(cur + 1) }));
+                          }}
+                          aria-label="Increase age"
+                          id="age-increment-btn"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
+
+                      {/* Quick Age Chips */}
+                      <div className="age-chips-row">
+                        {[
+                          { label: "18", val: "18" },
+                          { label: "25", val: "25" },
+                          { label: "45", val: "45" },
+                          { label: "60+", val: "65" },
+                        ].map((chip) => (
+                          <button
+                            key={chip.label}
+                            type="button"
+                            className={`age-chip ${form.age === chip.val ? "active" : ""}`}
+                            onClick={() => setForm((p) => ({ ...p, age: chip.val }))}
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label>Gender / लिंग</label>
-                      <div className="gender-options">
-                        {["male", "female", "other"].map((g) => (
+                    <div className="form-group gender-group-container">
+                      <label>
+                        <UserCheck size={16} /> Gender / लिंग
+                      </label>
+                      <div className="gender-cards-grid">
+                        {[
+                          { key: "male", emoji: "👨", en: "Male", hi: "पुरुष" },
+                          { key: "female", emoji: "👩", en: "Female", hi: "महिला" },
+                          { key: "other", emoji: "🧑", en: "Other", hi: "अन्य" },
+                        ].map((g) => (
                           <button
-                            key={g}
-                            className={`touch-option ${
-                              form.gender === g ? "selected" : ""
+                            key={g.key}
+                            type="button"
+                            className={`gender-card ${
+                              form.gender === g.key ? "selected" : ""
                             }`}
                             onClick={() =>
-                              setForm((p) => ({ ...p, gender: g }))
+                              setForm((p) => ({ ...p, gender: g.key }))
                             }
-                            id={`gender-${g}`}
-                            style={{ flex: 1, justifyContent: "center" }}
+                            id={`gender-${g.key}`}
                           >
-                            <span style={{ fontSize: "1.5rem" }}>
-                              {g === "male"
-                                ? "👨"
-                                : g === "female"
-                                ? "👩"
-                                : "🧑"}
-                            </span>
-                            <span style={{ textTransform: "capitalize" }}>
-                              {g}
-                            </span>
+                            <span className="gender-card-emoji">{g.emoji}</span>
+                            <span className="gender-card-en">{g.en}</span>
+                            <span className="gender-card-hi">{g.hi}</span>
                           </button>
                         ))}
                       </div>
@@ -517,8 +571,186 @@ function RegisterContent() {
 
         .form-row {
           display: grid;
-          grid-template-columns: 1fr 2fr;
-          gap: 16px;
+          grid-template-columns: minmax(180px, 1.15fr) minmax(240px, 1.85fr);
+          gap: 18px;
+          align-items: start;
+        }
+
+        @media (max-width: 600px) {
+          .form-row {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+        }
+
+        /* Age Stepper UI */
+        .age-stepper-box {
+          display: flex;
+          align-items: stretch;
+          background: rgba(12, 20, 50, 0.7);
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          transition: all var(--transition-base);
+          min-height: 58px;
+        }
+
+        .age-stepper-box:focus-within {
+          border-color: var(--color-accent-primary);
+          box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
+        }
+
+        .age-step-btn {
+          width: 44px;
+          border: none;
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--color-text-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          flex-shrink: 0;
+        }
+
+        .age-step-btn:hover:not(:disabled) {
+          background: rgba(0, 212, 170, 0.15);
+          color: var(--color-accent-primary);
+        }
+
+        .age-step-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+
+        .age-input-wrap {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          min-width: 0;
+          padding: 0 10px;
+        }
+
+        .age-direct-input {
+          width: 100%;
+          max-width: 90px;
+          height: 100%;
+          border: none;
+          background: transparent;
+          color: #ffffff;
+          font-size: 1.35rem;
+          font-weight: 700;
+          text-align: center;
+          padding: 0;
+          outline: none;
+          font-family: var(--font-display);
+        }
+
+        .age-direct-input::placeholder {
+          color: rgba(255, 255, 255, 0.25);
+          font-size: 1rem;
+          font-weight: 400;
+        }
+
+        .age-unit-label {
+          font-size: 0.72rem;
+          color: var(--color-accent-primary);
+          background: rgba(0, 212, 170, 0.12);
+          border: 1px solid rgba(0, 212, 170, 0.25);
+          padding: 2px 6px;
+          border-radius: 4px;
+          pointer-events: none;
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          flex-shrink: 0;
+        }
+
+        .age-chips-row {
+          display: flex;
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .age-chip {
+          flex: 1;
+          padding: 5px 0;
+          font-size: 0.75rem;
+          font-weight: 600;
+          border-radius: var(--radius-sm);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid var(--color-border);
+          color: var(--color-text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          text-align: center;
+        }
+
+        .age-chip:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(0, 212, 170, 0.3);
+          color: var(--color-text-primary);
+        }
+
+        .age-chip.active {
+          background: rgba(0, 212, 170, 0.15);
+          border-color: var(--color-accent-primary);
+          color: var(--color-accent-primary);
+          font-weight: 700;
+        }
+
+        /* Gender Cards UI */
+        .gender-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+        }
+
+        .gender-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 6px;
+          background: rgba(12, 20, 50, 0.7);
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: all var(--transition-base);
+          min-height: 76px;
+        }
+
+        .gender-card:hover {
+          background: rgba(20, 30, 75, 0.8);
+          border-color: rgba(0, 212, 170, 0.35);
+          transform: translateY(-2px);
+        }
+
+        .gender-card.selected {
+          background: rgba(0, 212, 170, 0.12);
+          border-color: var(--color-accent-primary);
+          box-shadow: 0 0 16px rgba(0, 212, 170, 0.2);
+        }
+
+        .gender-card-emoji {
+          font-size: 1.4rem;
+          margin-bottom: 2px;
+        }
+
+        .gender-card-en {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--color-text-primary);
+        }
+
+        .gender-card-hi {
+          font-size: 0.68rem;
+          color: var(--color-text-muted);
+        }
+
+        .gender-card.selected .gender-card-en {
+          color: var(--color-accent-primary);
         }
 
         .input-row {
@@ -528,11 +760,6 @@ function RegisterContent() {
 
         .input-row .input-field {
           flex: 1;
-        }
-
-        .gender-options {
-          display: flex;
-          gap: 10px;
         }
 
         .abha-result {

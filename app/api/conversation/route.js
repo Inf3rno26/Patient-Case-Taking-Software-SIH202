@@ -27,19 +27,68 @@ export async function POST(request) {
       const model = getConversationModel();
 
       // Build the system instruction
+      const isEnglish = !language || language === "en" || language.startsWith("en");
+      const isHindi = language === "hi" || language.startsWith("hi");
+
+      // Build the system instruction
       let systemPrompt = CLINICAL_INTERVIEW_SYSTEM_PROMPT;
       if (isAyush) {
         systemPrompt += "\n\n" + AYUSH_INTERVIEW_EXTENSION;
       }
 
-      // Add language instruction
-      systemPrompt += `\n\nIMPORTANT: The patient speaks ${language}. Respond in the SAME language the patient used. Also provide English translations. Current interview section: ${currentSection}.`;
+      // Add strict language instruction
+      if (isEnglish) {
+        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
+- The patient's selected consultation language is ENGLISH (en-IN).
+- You MUST generate "response" in 100% ENGLISH.
+- You MUST generate ALL "options[].text" in 100% ENGLISH.
+- "response_english" MUST ALSO be in 100% ENGLISH.
+- ABSOLUTELY DO NOT output any Hindi, Devanagari script (e.g. कोई, दर्द, बुखार), or Hinglish words anywhere.
+- Never switch to Hindi. Keep all questions, clinical acknowledgments, and touch options in clear, natural English.
+Current interview section: ${currentSection}.`;
+      } else if (isHindi) {
+        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
+- The patient's selected consultation language is HINDI (hi-IN).
+- You MUST generate "response" in simple, respectful conversational HINDI (Devanagari script).
+- You MUST generate "options[].text" in HINDI (Devanagari script).
+- "response_english" must contain the English translation.
+Current interview section: ${currentSection}.`;
+      } else {
+        systemPrompt += `\n\nCRITICAL LANGUAGE LOCK - STRICT REQUIREMENT:
+- The patient's selected consultation language is ${language}.
+- You MUST generate "response" and "options[].text" in ${language}.
+- "response_english" must contain the English translation.
+Current interview section: ${currentSection}.`;
+      }
 
       // Build chat history for context
       const chatHistory = conversationHistory.map((msg) => ({
         role: msg.role === "ai" ? "model" : "user",
         parts: [{ text: msg.text }],
       }));
+
+      // Initial greeting for history
+      const initialGreeting = isEnglish
+        ? "Hello! I am MediKiosk AI. What brings you to the hospital today?"
+        : isHindi
+        ? "नमस्ते! मैं MediKiosk AI हूँ। आज आप अस्पताल क्यों आए हैं?"
+        : "Hello! I am MediKiosk AI. What brings you to the hospital today?";
+
+      const initialOptions = isEnglish
+        ? [
+            { text: "Fever", text_english: "Fever", icon: "🤒" },
+            { text: "Pain", text_english: "Pain", icon: "😣" },
+            { text: "Cough", text_english: "Cough", icon: "😷" },
+            { text: "General checkup", text_english: "General checkup", icon: "🏥" },
+            { text: "Other", text_english: "Other", icon: "💬" },
+          ]
+        : [
+            { text: "बुखार", text_english: "Fever", icon: "🤒" },
+            { text: "दर्द", text_english: "Pain", icon: "😣" },
+            { text: "खांसी", text_english: "Cough", icon: "😷" },
+            { text: "सामान्य जांच", text_english: "General checkup", icon: "🏥" },
+            { text: "अन्य", text_english: "Other", icon: "💬" },
+          ];
 
       // Start chat with system prompt
       const chat = model.startChat({
@@ -53,42 +102,9 @@ export async function POST(request) {
             parts: [
               {
                 text: JSON.stringify({
-                  response:
-                    language === "hi-IN"
-                      ? "नमस्ते! मैं MediKiosk AI हूँ। आज आप अस्पताल क्यों आए हैं?"
-                      : "Hello! I am MediKiosk AI. What brings you to the hospital today?",
-                  response_english:
-                    "Hello! I am MediKiosk AI. What brings you to the hospital today?",
-                  options: [
-                    {
-                      text: language === "hi-IN" ? "बुखार" : "Fever",
-                      text_english: "Fever",
-                      icon: "🤒",
-                    },
-                    {
-                      text: language === "hi-IN" ? "दर्द" : "Pain",
-                      text_english: "Pain",
-                      icon: "😣",
-                    },
-                    {
-                      text: language === "hi-IN" ? "खांसी" : "Cough",
-                      text_english: "Cough",
-                      icon: "😷",
-                    },
-                    {
-                      text:
-                        language === "hi-IN"
-                          ? "सामान्य जांच"
-                          : "General checkup",
-                      text_english: "General checkup",
-                      icon: "🏥",
-                    },
-                    {
-                      text: language === "hi-IN" ? "अन्य" : "Other",
-                      text_english: "Other",
-                      icon: "💬",
-                    },
-                  ],
+                  response: initialGreeting,
+                  response_english: "Hello! I am MediKiosk AI. What brings you to the hospital today?",
+                  options: initialOptions,
                   section: "chief_complaint",
                   progress: 0,
                   isRedFlag: false,
@@ -121,6 +137,24 @@ export async function POST(request) {
           redFlagReason: null,
           extractedData: {},
         };
+      }
+
+      // STRICT POST-PROCESSING LANGUAGE GUARD
+      if (isEnglish) {
+        // If response contains Devanagari characters, replace with response_english
+        const hasDevanagari = /[\u0900-\u097F]/.test(parsed.response || "");
+        if (hasDevanagari && parsed.response_english) {
+          console.warn("[Language Guard] Intercepted Hindi response in English consultation. Swapped to English.");
+          parsed.response = parsed.response_english;
+        }
+        if (parsed.options && Array.isArray(parsed.options)) {
+          parsed.options = parsed.options.map((opt) => ({
+            ...opt,
+            text: /[\u0900-\u097F]/.test(opt.text || "") && opt.text_english
+              ? opt.text_english
+              : opt.text,
+          }));
+        }
       }
 
       return NextResponse.json(parsed);
