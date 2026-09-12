@@ -138,20 +138,30 @@ function WelcomeContent() {
       {step === "welcome" ? (
         /* ================= STEP 1: WELCOME SCREEN (NO LANGUAGES) ================= */
         <div className="welcome-step-container animate-fade-in">
-          {/* Top SIH 2026 & Team HEXABYTES Header Banner (Matches Slide Deck Header) */}
-          <div className="sih-presentation-banner animate-fade-in">
-            <div className="sih-banner-left">
-              <span className="hexabytes-pill">HEXABYTES</span>
-              <span className="team-badge-pill">TEAM 020</span>
+          {/* Top Navigation Bar / SIH 2026 Header Banner */}
+          <header className="sih-top-navbar animate-fade-in">
+            <div className="sih-nav-left">
+              <div className="team-badge-cluster">
+                <span className="hexabytes-pill">HEXABYTES</span>
+                <span className="team-badge-pill">TEAM 020</span>
+              </div>
             </div>
-            <div className="sih-banner-center">
-              <span className="sih-title-text">SMART INDIA HACKATHON 2026</span>
-              <span className="sih-sub-text">Problem Statement ID: 26047 • Theme: HealthTech</span>
+
+            <div className="sih-nav-center">
+              <div className="sih-title-badge">
+                <span className="sih-event-tag">SMART INDIA HACKATHON 2026</span>
+              </div>
+              <div className="sih-sub-meta">
+                <span>Problem Statement ID: <strong>26047</strong></span>
+                <span className="meta-bullet">•</span>
+                <span>Theme: <strong>HealthTech</strong></span>
+              </div>
             </div>
-            <div className="sih-banner-right">
+
+            <div className="sih-nav-right">
               <ToneSwitcher compact={true} showLabel={false} />
             </div>
-          </div>
+          </header>
 
           {/* Hero Branding */}
           <section className="hero">
@@ -170,10 +180,6 @@ function WelcomeContent() {
                 {MULTILINGUAL_GREETINGS[greetingIdx]}
               </span>
             </div>
-
-            <p className="hero-subtitle">
-              Sustaining clinical throughput in 80–120+ patient/shift government hospital OPDs. Fast, private vernacular case-taking, paper digitization, and triage before you meet the doctor.
-            </p>
           </section>
 
           {/* Proposed Solution: 5-Step Clinical Handoff Pipeline (Matches Slide 2) */}
@@ -226,38 +232,6 @@ function WelcomeContent() {
                 </div>
                 <h4>5. Doctor&apos;s Dashboard</h4>
                 <p>Doctor receives summary before patient enters for an informed, focused consultation.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Feasibility & Safety Governance Shields (Matches Slide 4) */}
-          <div className="safety-shields-bar">
-            <div className="safety-shield-item">
-              <span className="shield-symbol" style={{ color: "#ffb347" }}>⚠</span>
-              <div className="shield-text">
-                <span className="shield-label">AI Hallucination</span>
-                <span className="shield-sub">Doctor sign-off required (Physician-in-the-loop)</span>
-              </div>
-            </div>
-            <div className="safety-shield-item">
-              <span className="shield-symbol" style={{ color: "#a29bfe" }}>⚙</span>
-              <div className="shield-text">
-                <span className="shield-label">OPD Bottlenecks</span>
-                <span className="shield-sub">Touch chips with emojis &amp; offline fallback</span>
-              </div>
-            </div>
-            <div className="safety-shield-item">
-              <span className="shield-symbol" style={{ color: "#ff4757" }}>❤</span>
-              <div className="shield-text">
-                <span className="shield-label">Missed Emergencies</span>
-                <span className="shield-sub">Instant two-tier red-flag regex &amp; queue escalation</span>
-              </div>
-            </div>
-            <div className="safety-shield-item">
-              <span className="shield-symbol" style={{ color: "#00d4aa" }}>🔒</span>
-              <div className="shield-text">
-                <span className="shield-label">Data Privacy</span>
-                <span className="shield-sub">Consent + zero-retention (DPDP 2023 60s wipe)</span>
               </div>
             </div>
           </div>
@@ -426,77 +400,122 @@ function WelcomeContent() {
         .welcome-step-container,
         .language-step-container {
           width: 100%;
-          max-width: 960px;
+          max-width: 1060px;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
-        /* Top SIH Presentation Banner */
-        .sih-presentation-banner {
+        /* Top Navigation Bar */
+        .sih-top-navbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
           width: 100%;
-          max-width: 940px;
-          margin-bottom: 24px;
-          padding: 8px 16px;
-          border-radius: var(--radius-full);
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(56, 189, 248, 0.25);
-          backdrop-filter: blur(14px);
-          gap: 12px;
-          flex-wrap: wrap;
+          margin: 0 auto 30px;
+          padding: 10px 20px;
+          border-radius: 16px;
+          background: rgba(15, 23, 42, 0.75);
+          border: 1px solid rgba(56, 189, 248, 0.22);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+          gap: 16px;
+          position: relative;
+          z-index: 10;
         }
 
-        .sih-banner-left {
+        .sih-nav-left {
           display: flex;
           align-items: center;
-          gap: 8px;
+          flex: 1;
+          justify-content: flex-start;
+          min-width: 180px;
+        }
+
+        .team-badge-cluster {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 4px 7px;
+          background: rgba(255, 255, 255, 0.04);
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .hexabytes-pill {
-          padding: 3px 10px;
-          border-radius: var(--radius-full);
-          background: rgba(56, 189, 248, 0.15);
-          border: 1px solid rgba(56, 189, 248, 0.4);
+          padding: 4px 11px;
+          border-radius: 7px;
+          background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(0, 212, 170, 0.18));
+          border: 1px solid rgba(56, 189, 248, 0.5);
           color: #38bdf8;
           font-weight: 800;
-          font-size: 0.72rem;
-          letter-spacing: 0.05em;
+          font-size: 0.74rem;
+          letter-spacing: 0.08em;
+          text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
         }
 
         .team-badge-pill {
-          font-size: 0.68rem;
+          font-size: 0.70rem;
           font-weight: 700;
-          color: var(--color-text-muted);
-          background: rgba(255, 255, 255, 0.06);
-          padding: 2px 8px;
-          border-radius: var(--radius-full);
-        }
-
-        .sih-meta-center {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-        }
-
-        .sih-title-text {
-          font-size: 0.76rem;
-          font-weight: 800;
-          color: var(--color-text-primary);
+          color: var(--color-text-secondary);
+          background: rgba(255, 255, 255, 0.08);
+          padding: 3px 8px;
+          border-radius: 6px;
           letter-spacing: 0.04em;
         }
 
-        .sih-sub-text {
-          font-size: 0.66rem;
-          color: var(--color-text-muted);
+        .sih-nav-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          flex: 2;
+          gap: 3px;
         }
 
-        .sih-tone-wrapper {
+        .sih-title-badge {
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .sih-event-tag {
+          font-size: 0.84rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          color: #ffffff;
+          text-transform: uppercase;
+          background: linear-gradient(90deg, #38bdf8, #00d4aa);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .sih-sub-meta {
+          font-size: 0.70rem;
+          color: var(--color-text-muted);
           display: flex;
           align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+        }
+
+        .sih-sub-meta strong {
+          color: var(--color-text-primary);
+          font-weight: 600;
+        }
+
+        .meta-bullet {
+          color: var(--color-accent-primary);
+          opacity: 0.6;
+        }
+
+        .sih-nav-right {
+          display: flex;
+          align-items: center;
+          flex: 1;
+          justify-content: flex-end;
+          min-width: 180px;
         }
 
         /* Hero */
@@ -610,73 +629,39 @@ function WelcomeContent() {
           margin: 0;
         }
 
-        /* Feasibility & Safety Governance Shields */
-        .safety-shields-bar {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          width: 100%;
-          max-width: 940px;
-          margin-bottom: 30px;
-        }
-
-        .safety-shield-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: var(--radius-md);
-          background: rgba(15, 23, 42, 0.45);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .shield-symbol {
-          font-size: 1.1rem;
-          flex-shrink: 0;
-        }
-
-        .shield-text {
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-        }
-
-        .shield-label {
-          font-size: 0.74rem;
-          font-weight: 700;
-          color: var(--color-text-primary);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .shield-sub {
-          font-size: 0.65rem;
-          color: var(--color-text-muted);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
         @media (max-width: 960px) {
           .workflow-cards-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
           }
-          .safety-shields-bar {
-            grid-template-columns: repeat(2, 1fr);
+          .sih-top-navbar {
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            gap: 12px;
+          }
+        }
+
+        @media (max-width: 820px) {
+          .sih-top-navbar {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            border-radius: var(--radius-lg);
+          }
+          .sih-nav-left, .sih-nav-center, .sih-nav-right {
+            width: 100%;
+            justify-content: center;
+            min-width: unset;
+          }
+          .sih-sub-meta {
+            flex-wrap: wrap;
+            justify-content: center;
           }
         }
 
         @media (max-width: 600px) {
           .workflow-cards-grid {
             grid-template-columns: 1fr;
-          }
-          .safety-shields-bar {
-            grid-template-columns: 1fr;
-          }
-          .sih-presentation-banner {
-            flex-direction: column;
-            border-radius: var(--radius-lg);
           }
         }
 
