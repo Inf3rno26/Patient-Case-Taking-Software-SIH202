@@ -43,8 +43,8 @@ export default function Navbar() {
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
                 <span className="navbar-title">MediKiosk</span>
                 <span className="badge" style={{ fontSize: "0.62rem" }}>AI</span>
-                <span className="hexabytes-badge" title="Team 020: HEXABYTES">
-                  HEXABYTES
+                <span className="hexabytes-badge" title="Team 020: HEXABYTE">
+                  HEXABYTE
                 </span>
                 <span className="firebase-badge" title="Firebase Firestore Cloud Sync Active">
                   <span className="firebase-dot" />

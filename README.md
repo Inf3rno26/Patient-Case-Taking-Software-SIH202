@@ -25,12 +25,12 @@
 | **Problem Statement ID** | **26047** |
 | **Problem Statement Title** | **Patient Case Taking Software** |
 | **Theme** | **HealthTech / MedTech** |
-| **Team Name** | **HEXABYTES (Team 020)** |
+| **Team Name** | **HEXABYTE (Team 020)** |
 | **Institution** | **JAIN (Deemed-to-be University)** |
 
 ---
 
-## 👥 Team HEXABYTES (Team 020)
+## 👥 Team HEXABYTE (Team 020)
 
 | Member Name | Role & Core Contributions |
 | :--- | :--- |
@@ -262,7 +262,7 @@ graph TD
 
 <div align="center">
 
-**Developed with ❤️ by Team HEXABYTES for Smart India Hackathon 2026**
+**Developed with ❤️ by Team HEXABYTE for Smart India Hackathon 2026**
 
 *JAIN (Deemed-to-be University)*
 

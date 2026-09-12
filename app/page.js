@@ -142,7 +142,7 @@ function WelcomeContent() {
           <header className="sih-top-navbar animate-fade-in">
             <div className="sih-nav-left">
               <div className="team-badge-cluster">
-                <span className="hexabytes-pill">HEXABYTES</span>
+                <span className="hexabytes-pill">HEXABYTE</span>
                 <span className="team-badge-pill">TEAM 020</span>
               </div>
             </div>
