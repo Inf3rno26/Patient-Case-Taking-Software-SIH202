@@ -22,13 +22,13 @@ export const TONES = {
 };
 
 export function ToneProvider({ children }) {
-  const [tone, setToneState] = useState("teal");
+  const [tone, setToneState] = useState("slate");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("medikiosk_color_tone");
-    const initialTone = saved === "slate" ? "slate" : "teal";
+    const initialTone = saved === "teal" ? "teal" : "slate";
     setToneState(initialTone);
     applyTone(initialTone);
   }, []);

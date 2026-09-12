@@ -36,7 +36,7 @@ import DrugInteractionPanel from "@/components/DrugInteractionPanel";
 import RiskScoreCard from "@/components/RiskScoreCard";
 import PatientRecoveryGraph from "@/components/PatientRecoveryGraph";
 import AppointmentReminderModal from "@/components/AppointmentReminderModal";
-import { generateSampleRecoveryData, calculateReminderDate } from "@/lib/reminders";
+import { generateSampleRecoveryData, calculateReminderDate, formatSafeDate } from "@/lib/reminders";
 
 // Demo patient queue (baseline — always shown)
 const DEMO_PATIENTS = [
@@ -149,6 +149,171 @@ const DEMO_PATIENTS = [
       family: "No significant family history",
       personal: "Smoker (5 beedis/day × 10 years), occasional alcohol, construction worker",
       ros: "Positive: Productive cough, mild fatigue. Negative: No hemoptysis, no weight loss",
+    },
+  },
+  {
+    id: "MK-004",
+    name: "Lakshmi Narayanan",
+    age: 54,
+    gender: "F",
+    phone: "+91 98401 23456",
+    email: "lakshmi.narayanan54@gmail.com",
+    department: "Orthopedics",
+    priority: "routine",
+    chiefComplaint: "Severe bilateral knee pain on walking × 6 months",
+    status: "waiting",
+    time: "09:30 AM",
+    isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 10 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 10 * 86400000).toISOString()),
+      department: "Orthopedics",
+      doctorName: "Dr. Vikram Malhotra, MS (Ortho)",
+      remarks: "Bilateral Osteoarthritis (Grade 3 KL). Quadriceps isometric exercises advised. Glucosamine + Diacerein trial initiated. Plan intra-articular hyaluronic acid if no relief in 4 weeks.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: { sms: true, email: true, push: true },
+    },
+    summary: {
+      chiefComplaint: "Bilateral knee joint pain aggravated by squatting and climbing stairs × 6 months",
+      hpi: "Patient has dull aching pain in both knees, worse right > left. Associated coarse crepitus and morning stiffness lasting ~20 minutes. No joint effusion or erythema. Weight: 74 kg (BMI 29.2).",
+      pastHistory: "Primary Hypothyroidism on Levothyroxine 50mcg OD. Menopause at age 49.",
+      drugs: "Levothyroxine 50mcg OD, Tab Calcium carbonate 500mg OD, SOS Paracetamol",
+      allergies: "Sulfa drugs — urticaria",
+      family: "Mother had severe OA knee and underwent total knee replacement at age 65.",
+      personal: "Vegetarian diet, homemaker, sedentary activity level",
+      ros: "Positive: Crepitus, joint stiffness. Negative: No fever, no weight loss, no other joint involvement",
+    },
+  },
+  {
+    id: "MK-005",
+    name: "Master Aarav Sharma",
+    age: 7,
+    gender: "M",
+    phone: "+91 98112 34567",
+    email: "sharma.family.delhi@gmail.com",
+    department: "Pediatrics",
+    priority: "urgent",
+    chiefComplaint: "Nocturnal dry cough and wheezing × 4 days",
+    status: "waiting",
+    time: "09:38 AM",
+    isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 7 * 86400000).toISOString()),
+      department: "Pediatrics / Pulmonology",
+      doctorName: "Dr. Priya Nair, MD (Pediatrics)",
+      remarks: "Childhood Reactive Airway Disease (Asthma flare). SpO2 97% on room air. Continue Budesonide MDI via spacer twice daily and Levosalbutamol SOS. Review inhaler technique at follow-up.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: { sms: true, email: true, push: true },
+    },
+    summary: {
+      chiefComplaint: "Dry spasmodic cough worse at night with audible expiratory wheeze × 4 days",
+      hpi: "7-year-old boy with episodic nighttime cough triggered by cold weather and urban air quality. Mother reports mild chest indrawing during coughing fits. Relieved partially by warm water and salbutamol syrup.",
+      pastHistory: "History of atopic dermatitis in infancy. Frequent seasonal allergic rhinitis.",
+      drugs: "Syrup Montair-LC (Montelukast + Levocetirizine) 5ml HS",
+      allergies: "Dust mites, pollen. No known drug allergies.",
+      family: "Father has allergic rhinitis and asthma.",
+      personal: "School student, fully immunized according to National Immunization Schedule.",
+      ros: "Positive: Expiratory wheeze, nocturnal cough. Negative: No fever, no stridor, no cyanosis",
+    },
+  },
+  {
+    id: "MK-006",
+    name: "Harpreet Kaur",
+    age: 34,
+    gender: "F",
+    phone: "+91 98721 98765",
+    email: "harpreet.kaur34@outlook.com",
+    department: "Obstetrics & Gynecology",
+    priority: "routine",
+    chiefComplaint: "Routine Antenatal Checkup at 28 weeks gestation",
+    status: "waiting",
+    time: "09:45 AM",
+    isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 14 * 86400000).toISOString()),
+      department: "Obstetrics & Gynecology",
+      doctorName: "Dr. Sunita Mehra, MD, DGO",
+      remarks: "ANC-3 visit. Blood pressure 114/72 mmHg. Fetal heart rate 142 bpm regular. Hemoglobin 10.2 g/dL indicates mild gestational anemia. Continue Tab Ferrous Ascorbate + Folic Acid and repeat hemogram at next visit.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: { sms: true, email: true, push: true },
+    },
+    summary: {
+      chiefComplaint: "28 weeks gestational age primigravida for routine ANC review and screening",
+      hpi: "Primigravida at 28 weeks 3 days gestation by accurate LMP. Good fetal movements perceived. Reports mild fatigue and occasional pedal edema in evenings relieved by elevation. No bleeding, no leaking per vaginam.",
+      pastHistory: "No prior medical illnesses. Conceived spontaneously.",
+      drugs: "Tab Iron-Folic Acid 100mg elemental Fe OD, Tab Calcium 500mg BD",
+      allergies: "NKDA",
+      family: "No history of gestational diabetes or pregnancy-induced hypertension in family.",
+      personal: "Non-smoker, IT consultant working from home, balanced vegetarian diet.",
+      ros: "Positive: Active fetal kicks, mild pedal edema. Negative: No headache, no visual blur, no epigastric pain",
+    },
+  },
+  {
+    id: "MK-007",
+    name: "Rameshwar Prasad",
+    age: 58,
+    gender: "M",
+    phone: "+91 94501 77654",
+    email: "rameshwar.prasad.ayush@gmail.com",
+    department: "Ayurveda (AYUSH)",
+    priority: "routine",
+    chiefComplaint: "Chronic Sandhivata (Joint Pain) and Amlapitta (Hyperacidity) × 1 year",
+    status: "waiting",
+    time: "09:52 AM",
+    isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 7 * 86400000).toISOString()),
+      department: "Ayurveda (AYUSH)",
+      doctorName: "Vaidya Harish Joshi, BAMS, MD (Ayu)",
+      remarks: "Prakriti: Vata-Kapha dominant. Agni: Vishamagni. Prescribed Yogaraja Guggulu 2 tabs BD with warm water, Avipattikar Churna 3g HS, and scheduled for 7-day Panchakarma Janu Basti local snehana-swedana therapy.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: { sms: true, email: true, push: true },
+    },
+    summary: {
+      chiefComplaint: "Sandhigata Vata affecting both knees and Vidagdha Amlapitta with sour eructations × 1 year",
+      hpi: "Patient reports stiffness, shoola (pain), and sandhisphutana (crepitus) aggravated in cold and dry weather. Also suffers from Tikta-amla udgara (acid regurgitation) and burning retrosternal sensation after spicy food.",
+      pastHistory: "Chronic functional dyspepsia × 3 years. Mild dyslipidemia.",
+      drugs: "Occasionally takes Tab Pantoprazole 40mg with temporary relief",
+      allergies: "NKDA",
+      family: "Father had joint disorders and vata vyadhi.",
+      personal: "Retired railway clerk. Habit of late dinners and sedentary routine. Vata-Kapha deha prakriti.",
+      ros: "Positive: Sandhi shoola, Amla udgara, Mandagni. Negative: No fever, no bleeding, no neuro deficits",
+    },
+  },
+  {
+    id: "MK-008",
+    name: "Ananya Sen",
+    age: 23,
+    gender: "F",
+    phone: "+91 99031 44556",
+    email: "ananya.sen23@gmail.com",
+    department: "General Medicine / Dermatology",
+    priority: "urgent",
+    chiefComplaint: "Generalized itchy red hives (urticaria) all over body × 6 hours",
+    status: "waiting",
+    time: "10:02 AM",
+    isDemo: true,
+    followUp: {
+      appointmentDate: new Date(Date.now() + 3 * 86400000).toISOString(),
+      reminderDate: calculateReminderDate(new Date(Date.now() + 3 * 86400000).toISOString()),
+      department: "Dermatology",
+      doctorName: "Dr. Ananya Roy, MD (Dermatology)",
+      remarks: "Acute allergic urticaria following seafood (prawn) ingestion. No angioedema or airway involvement (lips/tongue clear, no wheezing). Prescribed Tab Bilastine 20mg OD × 5 days and Calamine lotion topically. Strict dietary avoidance.",
+      reminderStatus: "scheduled_2_days_prior",
+      channels: { sms: true, email: true, push: true },
+    },
+    summary: {
+      chiefComplaint: "Sudden onset pruritic erythematous edematous wheals on arms, abdomen, and thighs × 6 hours",
+      hpi: "23-year-old student developed acute severe generalized itching and raised pink hives 2 hours after consuming prawn curry at dinner. No difficulty breathing, no throat tightness, no facial or lip swelling.",
+      pastHistory: "History of mild allergic eczema in childhood. No chronic medical disorders.",
+      drugs: "Took one tablet of Cetirizine 10mg from local pharmacy 3 hours ago with mild itch reduction",
+      allergies: "Shellfish / Crustaceans — acute urticaria. NKDA.",
+      family: "Brother has peanut allergy.",
+      personal: "Postgraduate university student. Non-smoker, non-alcoholic.",
+      ros: "Positive: Generalized urticarial wheals, intense pruritus. Negative: No stridor, no facial angioedema, no hypotension",
     },
   },
 ];
@@ -384,13 +549,13 @@ export default function PhysicianPage() {
       prev.map((p) => (p.id === selectedPatient.id ? { ...p, followUp: followUpData } : p))
     );
     setSelectedPatient((prev) => ({ ...prev, followUp: followUpData }));
-    const reminderFormatted = new Date(followUpData.reminderDate).toLocaleDateString("en-IN", {
+    const reminderFormatted = formatSafeDate(followUpData.reminderDate, {
       day: "numeric",
       month: "short",
       year: "numeric",
-    });
+    }, 5);
     setFollowUpSuccessMsg(
-      `Checkup scheduled for ${new Date(followUpData.appointmentDate).toLocaleDateString("en-IN")}. 2-Day Pre-Alert will be sent on ${reminderFormatted} via SMS, Email & Push!`
+      `Checkup scheduled for ${formatSafeDate(followUpData.appointmentDate, { weekday: "short", day: "numeric", month: "short", year: "numeric" }, 7)}. 2-Day Pre-Alert will be sent on ${reminderFormatted} via SMS, Email & Push!`
     );
     setTimeout(() => setFollowUpSuccessMsg(""), 7000);
 
@@ -885,12 +1050,12 @@ export default function PhysicianPage() {
                               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                                 <Calendar size={18} style={{ color: "var(--color-accent-primary)" }} />
                                 <strong style={{ color: "var(--color-text-primary)", fontSize: "0.95rem" }}>
-                                  Next Checkup: {new Date(selectedPatient.followUp.appointmentDate).toLocaleDateString("en-IN", {
+                                  Next Checkup: {formatSafeDate(selectedPatient.followUp.appointmentDate, {
                                     weekday: "short",
                                     day: "numeric",
                                     month: "short",
                                     year: "numeric",
-                                  })}
+                                  }, 7)}
                                 </strong>
                                 <span
                                   style={{
@@ -909,11 +1074,11 @@ export default function PhysicianPage() {
                               <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
                                 Automated alert sent 2 days prior (
                                 <strong style={{ color: "var(--color-accent-warning)" }}>
-                                  {new Date(selectedPatient.followUp.reminderDate).toLocaleDateString("en-IN", {
+                                  {formatSafeDate(selectedPatient.followUp.reminderDate, {
                                     day: "numeric",
                                     month: "short",
                                     year: "numeric",
-                                  })}
+                                  }, 5)}
                                 </strong>
                                 ) to {selectedPatient.phone || "phone"} &amp; {selectedPatient.email || "email"}.
                               </p>

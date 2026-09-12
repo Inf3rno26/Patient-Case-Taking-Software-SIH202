@@ -17,6 +17,8 @@ import {
   BarChart2,
   Leaf,
   ChevronRight,
+  Users,
+  FileText,
 } from "lucide-react";
 import { LANGUAGES, speakText } from "@/lib/languages";
 import { usePatient } from "@/context/PatientContext";
@@ -136,28 +138,29 @@ function WelcomeContent() {
       {step === "welcome" ? (
         /* ================= STEP 1: WELCOME SCREEN (NO LANGUAGES) ================= */
         <div className="welcome-step-container animate-fade-in">
-          {/* Top Status & Two-Tone Theme Bar */}
-          <div className="welcome-top-bar">
-
-
-            <div className="status-badge animate-fade-in">
-              <span className="status-dot"></span>
-              <Activity size={16} />
-              <span>AI Triage Kiosk Active • OPD Smart Check-in</span>
+          {/* Top SIH 2026 & Team HEXABYTES Header Banner (Matches Slide Deck Header) */}
+          <div className="sih-presentation-banner animate-fade-in">
+            <div className="sih-banner-left">
+              <span className="hexabytes-pill">HEXABYTES</span>
+              <span className="team-badge-pill">TEAM 020</span>
             </div>
-
-            <div className="welcome-tone-wrapper">
-              <ToneSwitcher compact={false} showLabel={false} />
+            <div className="sih-banner-center">
+              <span className="sih-title-text">SMART INDIA HACKATHON 2026</span>
+              <span className="sih-sub-text">Problem Statement ID: 26047 • Theme: HealthTech</span>
+            </div>
+            <div className="sih-banner-right">
+              <ToneSwitcher compact={true} showLabel={false} />
             </div>
           </div>
-
-
 
           {/* Hero Branding */}
           <section className="hero">
             <h1 className="hero-title">
               <span className="text-gradient">MediKiosk</span>
             </h1>
+            <p className="hero-official-sub">
+              An AI-Powered, Multilingual, Multimodal Clinical Pre-Consultation &amp; Triage Kiosk for Indian Hospital OPDs
+            </p>
 
             {/* Rotating Multilingual Greeting Chip */}
             <div className="ticker-container">
@@ -169,50 +172,92 @@ function WelcomeContent() {
             </div>
 
             <p className="hero-subtitle">
-              Record your comprehensive medical case history through natural voice conversation
-              — before you meet the doctor. Fast, private, and available in your mother tongue.
+              Sustaining clinical throughput in 80–120+ patient/shift government hospital OPDs. Fast, private vernacular case-taking, paper digitization, and triage before you meet the doctor.
             </p>
           </section>
 
-          {/* Feature Highlights Grid */}
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon-wrapper voice">
-                <Mic size={24} />
+          {/* Proposed Solution: 5-Step Clinical Handoff Pipeline (Matches Slide 2) */}
+          <div className="workflow-section">
+            <div className="workflow-section-title">
+              <Sparkles size={16} />
+              <span>Proposed Solution • 5-Step Clinical Triage Pipeline</span>
+            </div>
+            <div className="workflow-cards-grid">
+              <div className="wf-card step-1">
+                <div className="wf-step-num">1</div>
+                <div className="wf-icon-wrap" style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8" }}>
+                  <Users size={20} />
+                </div>
+                <h4>1. OPD Waiting Lobby</h4>
+                <p>Kiosk in waiting area. Patient selects native language with one touch &amp; gives consent.</p>
               </div>
-              <div className="feature-content">
-                <h4>Voice in 12 Languages</h4>
-                <p>Speak naturally in your native Indian dialect powered by Bhashini AI.</p>
+
+              <div className="wf-card step-2">
+                <div className="wf-step-num">2</div>
+                <div className="wf-icon-wrap" style={{ background: "rgba(0, 212, 170, 0.15)", color: "#00d4aa" }}>
+                  <Mic size={20} />
+                </div>
+                <h4>2. Vernacular Voice Interview</h4>
+                <p>Speaks in Hindi, Tamil, Bengali, etc. SOCRATES-based inquiry with emoji touch-chip fallback.</p>
+              </div>
+
+              <div className="wf-card step-3">
+                <div className="wf-step-num">3</div>
+                <div className="wf-icon-wrap" style={{ background: "rgba(124, 92, 252, 0.15)", color: "#a29bfe" }}>
+                  <Activity size={20} />
+                </div>
+                <h4>3. Paper &amp; Report Digitization</h4>
+                <p>Scans prescriptions &amp; reports on camera. Multi-pass OCR cross-checks Indian pharmacopeia.</p>
+              </div>
+
+              <div className="wf-card step-4">
+                <div className="wf-step-num">4</div>
+                <div className="wf-icon-wrap" style={{ background: "rgba(46, 213, 115, 0.15)", color: "#2ed573" }}>
+                  <FileText size={20} />
+                </div>
+                <h4>4. Physician-Ready Summary</h4>
+                <p>Structured FHIR/SOAP dossier with ESI triage scoring. Cuts intake from 3 min to 30 sec.</p>
+              </div>
+
+              <div className="wf-card step-5">
+                <div className="wf-step-num">5</div>
+                <div className="wf-icon-wrap" style={{ background: "rgba(255, 179, 71, 0.15)", color: "#ffb347" }}>
+                  <Stethoscope size={20} />
+                </div>
+                <h4>5. Doctor&apos;s Dashboard</h4>
+                <p>Doctor receives summary before patient enters for an informed, focused consultation.</p>
               </div>
             </div>
+          </div>
 
-            <div className="feature-card">
-              <div className="feature-icon-wrapper speed">
-                <Clock size={24} />
-              </div>
-              <div className="feature-content">
-                <h4>2-Minute Smart Check-In</h4>
-                <p>Instant token issuance, automated triage, and priority queue routing.</p>
+          {/* Feasibility & Safety Governance Shields (Matches Slide 4) */}
+          <div className="safety-shields-bar">
+            <div className="safety-shield-item">
+              <span className="shield-symbol" style={{ color: "#ffb347" }}>⚠</span>
+              <div className="shield-text">
+                <span className="shield-label">AI Hallucination</span>
+                <span className="shield-sub">Doctor sign-off required (Physician-in-the-loop)</span>
               </div>
             </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper secure">
-                <ShieldCheck size={24} />
-              </div>
-              <div className="feature-content">
-                <h4>ABHA &amp; ABDM Ready</h4>
-                <p>Securely linked to your Ayushman Bharat Digital Health ID.</p>
+            <div className="safety-shield-item">
+              <span className="shield-symbol" style={{ color: "#a29bfe" }}>⚙</span>
+              <div className="shield-text">
+                <span className="shield-label">OPD Bottlenecks</span>
+                <span className="shield-sub">Touch chips with emojis &amp; offline fallback</span>
               </div>
             </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-wrapper doctor">
-                <Stethoscope size={24} />
+            <div className="safety-shield-item">
+              <span className="shield-symbol" style={{ color: "#ff4757" }}>❤</span>
+              <div className="shield-text">
+                <span className="shield-label">Missed Emergencies</span>
+                <span className="shield-sub">Instant two-tier red-flag regex &amp; queue escalation</span>
               </div>
-              <div className="feature-content">
-                <h4>Doctor EHR Summary</h4>
-                <p>Clinical history and red-flag alerts are ready on doctor&apos;s screen.</p>
+            </div>
+            <div className="safety-shield-item">
+              <span className="shield-symbol" style={{ color: "#00d4aa" }}>🔒</span>
+              <div className="shield-text">
+                <span className="shield-label">Data Privacy</span>
+                <span className="shield-sub">Consent + zero-retention (DPDP 2023 60s wipe)</span>
               </div>
             </div>
           </div>
@@ -387,71 +432,252 @@ function WelcomeContent() {
           align-items: center;
         }
 
-        /* Top Bar */
-        .welcome-top-bar {
+        /* Top SIH Presentation Banner */
+        .sih-presentation-banner {
           display: flex;
           align-items: center;
           justify-content: space-between;
           width: 100%;
-          max-width: 900px;
+          max-width: 940px;
           margin-bottom: 24px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-
-        .welcome-tone-wrapper {
-          display: flex;
-          align-items: center;
-        }
-
-        .language-header-right {
-          display: flex;
-          align-items: center;
+          padding: 8px 16px;
+          border-radius: var(--radius-full);
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(56, 189, 248, 0.25);
+          backdrop-filter: blur(14px);
           gap: 12px;
           flex-wrap: wrap;
         }
 
-        /* Top Status Badge */
-        .status-badge {
-          display: inline-flex;
+        .sih-banner-left {
+          display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 8px 22px;
+          gap: 8px;
+        }
+
+        .hexabytes-pill {
+          padding: 3px 10px;
           border-radius: var(--radius-full);
-          background: rgba(0, 212, 170, 0.08);
-          border: 1px solid rgba(0, 212, 170, 0.25);
-          color: var(--color-accent-primary);
-          font-size: 0.88rem;
-          font-weight: 600;
-          margin-bottom: 0;
-          backdrop-filter: blur(10px);
+          background: rgba(56, 189, 248, 0.15);
+          border: 1px solid rgba(56, 189, 248, 0.4);
+          color: #38bdf8;
+          font-weight: 800;
+          font-size: 0.72rem;
+          letter-spacing: 0.05em;
         }
 
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #00e676;
-          box-shadow: 0 0 10px #00e676;
-          animation: pulse-dot 2s infinite ease-in-out;
+        .team-badge-pill {
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: var(--color-text-muted);
+          background: rgba(255, 255, 255, 0.06);
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
         }
 
-        @keyframes pulse-dot {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.4;
-            transform: scale(1.3);
-          }
+        .sih-meta-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+
+        .sih-title-text {
+          font-size: 0.76rem;
+          font-weight: 800;
+          color: var(--color-text-primary);
+          letter-spacing: 0.04em;
+        }
+
+        .sih-sub-text {
+          font-size: 0.66rem;
+          color: var(--color-text-muted);
+        }
+
+        .sih-tone-wrapper {
+          display: flex;
+          align-items: center;
         }
 
         /* Hero */
         .hero {
           text-align: center;
-          max-width: 800px;
-          margin-bottom: 32px;
+          max-width: 860px;
+          margin-bottom: 28px;
+        }
+
+        .hero-official-sub {
+          font-size: clamp(0.85rem, 1.8vw, 1rem);
+          font-weight: 600;
+          color: var(--color-accent-primary);
+          margin-top: -6px;
+          margin-bottom: 14px;
+          letter-spacing: 0.01em;
+          max-width: 720px;
+          margin-left: auto;
+          margin-right: auto;
+          line-height: 1.4;
+        }
+
+        /* 5-Step Proposed Solution Workflow */
+        .workflow-section {
+          width: 100%;
+          max-width: 940px;
+          margin-bottom: 28px;
+        }
+
+        .workflow-section-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--color-accent-primary);
+          margin-bottom: 12px;
+          justify-content: center;
+        }
+
+        .workflow-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 10px;
+        }
+
+        .wf-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 16px 12px 14px;
+          border-radius: var(--radius-lg);
+          background: rgba(15, 23, 42, 0.55);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(12px);
+          transition: all 0.25s ease;
+        }
+
+        .wf-card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(56, 189, 248, 0.4);
+          background: rgba(30, 41, 59, 0.75);
+        }
+
+        .wf-step-num {
+          position: absolute;
+          top: 8px;
+          left: 10px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          color: var(--color-text-muted);
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.06);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .wf-icon-wrap {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
+        }
+
+        .wf-card h4 {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--color-text-primary);
+          margin-bottom: 5px;
+          line-height: 1.25;
+          min-height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .wf-card p {
+          font-size: 0.7rem;
+          color: var(--color-text-muted);
+          line-height: 1.35;
+          margin: 0;
+        }
+
+        /* Feasibility & Safety Governance Shields */
+        .safety-shields-bar {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          width: 100%;
+          max-width: 940px;
+          margin-bottom: 30px;
+        }
+
+        .safety-shield-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: var(--radius-md);
+          background: rgba(15, 23, 42, 0.45);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .shield-symbol {
+          font-size: 1.1rem;
+          flex-shrink: 0;
+        }
+
+        .shield-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .shield-label {
+          font-size: 0.74rem;
+          font-weight: 700;
+          color: var(--color-text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .shield-sub {
+          font-size: 0.65rem;
+          color: var(--color-text-muted);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        @media (max-width: 960px) {
+          .workflow-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .safety-shields-bar {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 600px) {
+          .workflow-cards-grid {
+            grid-template-columns: 1fr;
+          }
+          .safety-shields-bar {
+            grid-template-columns: 1fr;
+          }
+          .sih-presentation-banner {
+            flex-direction: column;
+            border-radius: var(--radius-lg);
+          }
         }
 
         .hero-title {

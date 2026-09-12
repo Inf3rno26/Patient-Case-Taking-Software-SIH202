@@ -109,7 +109,7 @@ function ScanContent() {
             <div className="mode-hint-divider">or</div>
             <div className="mode-hint-item">
               <Camera size={16} />
-              <span>Tap "Take Photo" to scan live</span>
+              <span>Tap &quot;Take Photo&quot; to scan live</span>
             </div>
           </div>
 

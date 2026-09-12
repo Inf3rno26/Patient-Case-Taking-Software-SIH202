@@ -490,7 +490,7 @@ export default function VoiceRecorder({
             ) : isListening ? (
               <span className="listening-state">
                 <span className="status-dot green" />
-                Listening now... Tap microphone or "Send Response" when finished
+                Listening now... Tap microphone or &quot;Send Response&quot; when finished
               </span>
             ) : (
               <span className="idle-state">

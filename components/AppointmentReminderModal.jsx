@@ -39,9 +39,17 @@ export default function AppointmentReminderModal({
     return d.toISOString().split("T")[0];
   };
 
-  const [appointmentDate, setAppointmentDate] = useState(
-    initialAppointmentDate ? initialAppointmentDate.split("T")[0] : defaultApptDate()
-  );
+  const getInitialDateStr = () => {
+    if (initialAppointmentDate && typeof initialAppointmentDate === "string") {
+      const d = new Date(initialAppointmentDate);
+      if (!isNaN(d.getTime()) && d.getFullYear() >= 2020) {
+        return d.toISOString().split("T")[0];
+      }
+    }
+    return defaultApptDate();
+  };
+
+  const [appointmentDate, setAppointmentDate] = useState(getInitialDateStr());
   const [appointmentTime, setAppointmentTime] = useState("10:00");
   const [activePreviewChannel, setActivePreviewChannel] = useState("push"); // 'push' | 'sms' | 'email'
   const [showLivePushBanner, setShowLivePushBanner] = useState(false);
@@ -53,9 +61,12 @@ export default function AppointmentReminderModal({
   const phone = patient?.phone || "9876543210";
   const email = patient?.email || "patient@example.com";
 
-  // Build full timestamp
-  const fullApptDateTime = new Date(`${appointmentDate}T${appointmentTime}:00`);
-  const reminderDateTime = calculateReminderDate(fullApptDateTime);
+  // Build full timestamp safely
+  const safeDateStr = appointmentDate || defaultApptDate();
+  const fullApptDateTime = new Date(`${safeDateStr}T${appointmentTime}:00`);
+  const reminderDateTimeRaw = calculateReminderDate(fullApptDateTime);
+  const reminderDateObj = new Date(reminderDateTimeRaw);
+  const reminderDateTimeStr = typeof reminderDateTimeRaw === "string" ? reminderDateTimeRaw : reminderDateTimeRaw.toISOString();
 
   const notifications = formatReminderNotifications({
     patientName,
@@ -63,7 +74,7 @@ export default function AppointmentReminderModal({
     email,
     department,
     appointmentDate: fullApptDateTime.toISOString(),
-    reminderDate: reminderDateTime.toISOString(),
+    reminderDate: reminderDateTimeStr,
   });
 
   const handleTriggerTestPush = () => {
@@ -80,7 +91,7 @@ export default function AppointmentReminderModal({
     if (onSaveSchedule) {
       onSaveSchedule({
         appointmentDate: fullApptDateTime.toISOString(),
-        reminderDate: reminderDateTime.toISOString(),
+        reminderDate: reminderDateTimeStr,
         department,
         status: "scheduled",
       });
@@ -223,7 +234,7 @@ export default function AppointmentReminderModal({
                   <div className="calc-row">
                     <span className="lbl">Reminder Dispatched On:</span>
                     <span className="val reminder-val">
-                      {reminderDateTime.toLocaleDateString("en-IN", {
+                      {reminderDateObj.toLocaleDateString("en-IN", {
                         weekday: "short",
                         day: "numeric",
                         month: "short",

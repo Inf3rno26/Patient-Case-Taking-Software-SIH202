@@ -16,10 +16,12 @@ export default function QRToken({ value, size = 160, label }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
 
+  const lastRenderedRef = useRef(null);
+
   // Load qrcode-generator from CDN once
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.qrcode) { setReady(true); return; }
+    if (window.qrcode || window.QRCode) { setReady(true); return; }
 
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
@@ -31,16 +33,20 @@ export default function QRToken({ value, size = 160, label }) {
   // Draw QR onto canvas once library is ready and value is present
   useEffect(() => {
     if (!ready || !canvasRef.current || !value) return;
+    if (lastRenderedRef.current === `${value}_${size}`) return;
+
+    let timeoutId;
+    let tmp = null;
 
     try {
-      // QRCode from qrcodejs writes to a div; we'll use a temp div trick
-      const tmp = document.createElement("div");
+      lastRenderedRef.current = `${value}_${size}`;
+      tmp = document.createElement("div");
       tmp.style.display = "none";
       document.body.appendChild(tmp);
 
       // eslint-disable-next-line no-undef
-      const qr = new QRCode(tmp, {
-        text: value,
+      new QRCode(tmp, {
+        text: String(value),
         width: size,
         height: size,
         colorDark: "#00d4aa",
@@ -48,23 +54,31 @@ export default function QRToken({ value, size = 160, label }) {
         correctLevel: QRCode.CorrectLevel.M,
       });
 
-      // Give a tiny tick for the img to render, then copy to canvas
-      setTimeout(() => {
-        const img = tmp.querySelector("img");
+      timeoutId = setTimeout(() => {
+        const img = tmp?.querySelector("img");
         const ctx = canvasRef.current?.getContext("2d");
         if (img && ctx) {
-          // Draw dark background
           ctx.fillStyle = "rgba(255,255,255,0.04)";
           ctx.fillRect(0, 0, size, size);
           img.onload = () => ctx.drawImage(img, 0, 0, size, size);
           if (img.complete) ctx.drawImage(img, 0, 0, size, size);
         }
-        document.body.removeChild(tmp);
-      }, 100);
+        if (tmp && tmp.parentNode) {
+          tmp.parentNode.removeChild(tmp);
+          tmp = null;
+        }
+      }, 80);
     } catch (e) {
       console.warn("QR render error:", e);
       setError(true);
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (tmp && tmp.parentNode) {
+        tmp.parentNode.removeChild(tmp);
+      }
+    };
   }, [ready, value, size]);
 
   if (error) return null;

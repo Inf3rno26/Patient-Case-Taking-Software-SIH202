@@ -14,21 +14,33 @@ import {
   Sparkles,
   BarChart3,
   LineChart,
+  Edit3,
+  Save,
+  X,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
+import { generateSampleRecoveryData } from "@/lib/reminders";
 
 /**
  * PatientRecoveryGraph — Visualizes clinical recovery progress
  * Comparing Initial Visit (Before) vs Follow-up Visit (Now)
  */
 export default function PatientRecoveryGraph({
-  recoveryData,
+  recoveryData = null,
+  patient = null,
+  complaint = "",
   patientName = "Patient",
   customRemarks = null,
+  onUpdateRemarks = null,
 }) {
   const [activeTab, setActiveTab] = useState("symptoms"); // 'symptoms' | 'trajectory' | 'vitals'
+  const [isEditingRemarks, setIsEditingRemarks] = useState(false);
 
-  if (!recoveryData) return null;
+  // Auto-resolve patient name & sample recovery data
+  const resolvedPatientName = patient?.name || patientName || "Patient";
+  const activeData =
+    recoveryData ||
+    generateSampleRecoveryData(patient || { name: resolvedPatientName }, complaint);
 
   const {
     recoveryScore = 78,
@@ -38,9 +50,21 @@ export default function PatientRecoveryGraph({
     timelineTrend = [],
     doctorName = "Dr. R. Sharma (MD)",
     dateEvaluated = new Date().toLocaleDateString("en-IN"),
-  } = recoveryData;
+  } = activeData || {};
 
-  const displayRemarks = customRemarks || remarks;
+  const [remarksText, setRemarksText] = useState(customRemarks || remarks);
+
+  const handleSaveRemarks = () => {
+    setIsEditingRemarks(false);
+    if (onUpdateRemarks) {
+      onUpdateRemarks(remarksText);
+    }
+  };
+
+  const handleCancelRemarks = () => {
+    setIsEditingRemarks(false);
+    setRemarksText(customRemarks || remarks);
+  };
 
   // SVG dimensions for trajectory graph
   const svgWidth = 520;
@@ -303,11 +327,97 @@ export default function PatientRecoveryGraph({
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--color-accent-primary)" }}>
               <Stethoscope size={15} /> <strong>Doctor&apos;s Follow-up Remarks &amp; Assessment</strong>
             </span>
-            <span className="remarks-date">
-              <Calendar size={12} /> Evaluated: {dateEvaluated}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="remarks-date">
+                <Calendar size={12} /> Evaluated: {dateEvaluated}
+              </span>
+              {onUpdateRemarks && !isEditingRemarks && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingRemarks(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    background: "rgba(0, 212, 170, 0.15)",
+                    border: "1px solid rgba(0, 212, 170, 0.4)",
+                    color: "var(--color-accent-primary)",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Edit3 size={11} /> Edit Remarks
+                </button>
+              )}
+            </div>
           </div>
-          <p className="remarks-body">{displayRemarks}</p>
+
+          {isEditingRemarks ? (
+            <div style={{ marginTop: 10 }}>
+              <textarea
+                value={remarksText}
+                onChange={(e) => setRemarksText(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  background: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid var(--color-accent-primary)",
+                  color: "#fff",
+                  fontSize: "0.85rem",
+                  lineHeight: 1.5,
+                  boxSizing: "border-box",
+                }}
+              />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={handleSaveRemarks}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    background: "var(--color-accent-primary)",
+                    color: "#000",
+                    fontWeight: 700,
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    border: "none",
+                  }}
+                >
+                  <Save size={13} /> Save Remarks
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelRemarks}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    background: "rgba(255, 255, 255, 0.08)",
+                    color: "var(--color-text-secondary)",
+                    fontWeight: 600,
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    border: "1px solid var(--color-border)",
+                  }}
+                >
+                  <X size={13} /> Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="remarks-body">{remarksText || displayRemarks}</p>
+          )}
+
           <div className="remarks-footer">
             <span>Verified By: <strong>{doctorName}</strong></span>
             <span className="verified-badge">

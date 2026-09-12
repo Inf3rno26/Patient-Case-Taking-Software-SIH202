@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for healthcare security & DPDP 2023 compliance
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isHospitalStaff() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'physician' || 
+         request.auth.token.role == 'nurse' || 
+         request.auth.token.role == 'admin' ||
+         request.auth.token.hospitalId == 'DL-ND-AIIMS-001');
+    }
+
+    function isValidSessionPayload() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['id', 'patient', 'updatedAt']) &&
+             data.id is string &&
+             data.patient.name is string &&
+             data.patient.name.size() > 0 &&
+             data.patient.name.size() < 100 &&
+             data.updatedAt is string;
+    }
+
+    // ─── OPD Sessions (Patient Intake & Triage Records) ──────────────────────
+    match /opd_sessions/{sessionId} {
+      // 1. READ: Only authenticated hospital physicians and triage nurses can read full patient histories
+      allow read: if isHospitalStaff();
+
+      // 2. CREATE: Kiosk terminals can create intake records with strict schema validation
+      allow create: if isValidSessionPayload();
+
+      // 3. UPDATE: Physicians can update clinical remarks and follow-up schedules; kiosks can update existing intake
+      allow update: if isHospitalStaff() || isValidSessionPayload();
+
+      // 4. DELETE: Clinical audit trails cannot be deleted directly (immutable healthcare record requirement)
+      allow delete: if false;
+    }
+
+    // ─── Disease Surveillance & Analytics Aggregations ────────────────────────
+    match /surveillance_metrics/{metricId} {
+      // Aggregated de-identified epidemiological statistics are readable by hospital dashboards
+      allow read: if true;
+      allow write: if isHospitalStaff();
+    }
+
+    // Deny all other collections by default (Zero-Trust Principle)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

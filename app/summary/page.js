@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ClipboardList,
@@ -39,7 +39,8 @@ import QRToken from "@/components/QRToken";
 import RiskScoreCard from "@/components/RiskScoreCard";
 import PatientRecoveryGraph from "@/components/PatientRecoveryGraph";
 import AppointmentReminderModal from "@/components/AppointmentReminderModal";
-import { calculateReminderDate } from "@/lib/reminders";
+import { calculateReminderDate, formatSafeDate } from "@/lib/reminders";
+import { savePatientToFirestore } from "@/lib/firebase";
 import { usePatient } from "@/context/PatientContext";
 import { speakText } from "@/lib/languages";
 
@@ -55,23 +56,33 @@ export default function SummaryPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState({});
 
-  // Follow-up & 2-Day Pre-Appointment Reminder State
+  // Follow-up & 2-Day Pre-Appointment Reminder State (recovery tracking visible by default)
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
-  const [showRecoveryTracking, setShowRecoveryTracking] = useState(false);
+  const [showRecoveryTracking, setShowRecoveryTracking] = useState(true);
   const [followUp, setFollowUp] = useState(null);
+  const followUpInitRef = useRef(false);
+  const lastSyncedIdRef = useRef(null);
 
-  // Synchronize follow-up appointment & 2-day pre-appointment alert calculation
+  // Synchronize follow-up appointment & 2-day pre-appointment alert calculation (Runs safely once)
   useEffect(() => {
-    if (session?.followUp) {
+    const rawAppt = session?.followUp?.appointmentDate;
+    const isApptValid =
+      rawAppt &&
+      !isNaN(new Date(rawAppt).getTime()) &&
+      new Date(rawAppt).getFullYear() >= 2020;
+
+    if (session?.followUp && isApptValid) {
       setFollowUp(session.followUp);
-    } else if (session?.patient?.name) {
+    } else if (!followUpInitRef.current && session) {
+      followUpInitRef.current = true;
+      // Default to exactly 7 days from now (never null or 1970)
       const targetDate = new Date(Date.now() + 7 * 86400000).toISOString();
       const defaultFollowUp = {
         appointmentDate: targetDate,
         reminderDate: calculateReminderDate(targetDate),
-        department: summary?.suggestedDepartment || "General Medicine",
-        doctorName: "Dr. Sharma, MD (OPD)",
-        remarks: "Review clinical recovery, symptom resolution, and medication compliance.",
+        department: session?.followUp?.department || summary?.suggestedDepartment || "General Medicine",
+        doctorName: session?.followUp?.doctorName || "Dr. Sharma, MD (OPD)",
+        remarks: session?.followUp?.remarks || "Review clinical recovery, symptom resolution, and medication compliance.",
         reminderStatus: "scheduled_2_days_prior",
         channels: {
           sms: Boolean(session?.patient?.phone),
@@ -80,13 +91,25 @@ export default function SummaryPage() {
         },
       };
       setFollowUp(defaultFollowUp);
+      updateSession({ followUp: defaultFollowUp });
     }
-  }, [session, summary]);
+  }, [session?.followUp?.appointmentDate, summary?.suggestedDepartment]);
 
   const handleScheduleFollowUp = (newFollowUp) => {
     setFollowUp(newFollowUp);
     updateSession({ followUp: newFollowUp });
+    if (session) {
+      savePatientToFirestore({ ...session, followUp: newFollowUp });
+    }
   };
+
+  // Sync to Firebase Cloud Firestore once per session
+  useEffect(() => {
+    if (session && session.id && lastSyncedIdRef.current !== session.id) {
+      lastSyncedIdRef.current = session.id;
+      savePatientToFirestore(session);
+    }
+  }, [session?.id]);
 
   // Submission & Security Wipe state
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -462,14 +485,14 @@ export default function SummaryPage() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <strong style={{ color: 'var(--color-text-primary)', fontSize: '0.92rem' }}>
-                          Next Doctor Checkup: {new Date(followUp.appointmentDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                          Next Doctor Checkup: {formatSafeDate(followUp?.appointmentDate, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }, 7)}
                         </strong>
                         <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(0, 212, 170, 0.2)', color: 'var(--color-accent-primary)', fontWeight: 700, border: '1px solid rgba(0, 212, 170, 0.35)' }}>
                           2-Day Alert Armed
                         </span>
                       </div>
                       <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
-                        A reminder push notification + SMS to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.phone || "your phone"}</strong> and email to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.email || "your email"}</strong> will trigger on <strong style={{ color: 'var(--color-accent-warning)' }}>{new Date(followUp.reminderDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</strong> (exact 48 hrs before).
+                        A reminder push notification + SMS to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.phone || "your phone"}</strong> and email to <strong style={{ color: 'var(--color-text-primary)' }}>{session?.patient?.email || "your email"}</strong> will trigger on <strong style={{ color: 'var(--color-accent-warning)' }}>{formatSafeDate(followUp?.reminderDate, { weekday: 'short', day: 'numeric', month: 'short' }, 5)}</strong> (exact 48 hrs before).
                       </p>
                     </div>
                   </div>
@@ -499,7 +522,7 @@ export default function SummaryPage() {
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
                   {/* QR Code Token */}
                   <QRToken
-                    value={`MEDIKIOSK:${session?.id || 'MK-SESSION'}:${session?.patient?.name || 'Patient'}:${new Date().toISOString()}`}
+                    value={`MEDIKIOSK:${session?.id || 'MK-SESSION'}:${session?.patient?.name || 'Patient'}`}
                     size={130}
                     label={`Token: ${session?.id || 'MK-LIVE'}`}
                   />
@@ -634,6 +657,23 @@ export default function SummaryPage() {
                     {summary.suggestedDepartment && (
                       <span className="badge">{summary.suggestedDepartment}</span>
                     )}
+                    <span
+                      className="badge"
+                      title="Real-time synchronized with Firebase Cloud Firestore"
+                      style={{
+                        borderColor: "rgba(255, 153, 0, 0.4)",
+                        background: "rgba(255, 153, 0, 0.12)",
+                        color: "#ff9900",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff9900", display: "inline-block" }} />
+                      Firebase Cloud Synced
+                    </span>
                   </div>
                 </div>
 
@@ -686,7 +726,7 @@ export default function SummaryPage() {
                         </span>
                       </div>
                       <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                        Scheduled Checkup: <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(followUp.appointmentDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong> • {followUp.department || "OPD"}
+                        Scheduled Checkup: <strong style={{ color: 'var(--color-text-primary)' }}>{formatSafeDate(followUp?.appointmentDate, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }, 7)}</strong> • {followUp?.department || "OPD"}
                       </p>
                     </div>
 
@@ -754,7 +794,7 @@ export default function SummaryPage() {
                           Automated 2-Day Pre-Notification Armed
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                          A reminder is automatically dispatched on <strong style={{ color: 'var(--color-accent-warning)' }}>{new Date(followUp.reminderDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</strong> (exact 48 hrs before visit).
+                          A reminder is automatically dispatched on <strong style={{ color: 'var(--color-accent-warning)' }}>{formatSafeDate(followUp?.reminderDate, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }, 5)}</strong> (exact 48 hrs before visit).
                         </div>
                       </div>
                     </div>

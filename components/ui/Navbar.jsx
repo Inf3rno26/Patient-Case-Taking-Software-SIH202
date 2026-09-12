@@ -39,8 +39,22 @@ export default function Navbar() {
             <div className="navbar-logo">
               <Activity size={24} />
             </div>
-            <span className="navbar-title">MediKiosk</span>
-            <span className="badge" style={{ fontSize: "0.65rem" }}>AI</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
+                <span className="navbar-title">MediKiosk</span>
+                <span className="badge" style={{ fontSize: "0.62rem" }}>AI</span>
+                <span className="hexabytes-badge" title="Team 020: HEXABYTES">
+                  HEXABYTES
+                </span>
+                <span className="firebase-badge" title="Firebase Firestore Cloud Sync Active">
+                  <span className="firebase-dot" />
+                  Firebase
+                </span>
+              </div>
+              <div className="sih-nav-sub">
+                SIH 2026 • PS 26047 • HealthTech
+              </div>
+            </div>
           </div>
         </div>
 
@@ -217,6 +231,55 @@ export default function Navbar() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+        }
+
+        .hexabytes-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 7px;
+          border-radius: var(--radius-full);
+          background: rgba(56, 189, 248, 0.12);
+          border: 1px solid rgba(56, 189, 248, 0.35);
+          font-size: 0.62rem;
+          font-weight: 800;
+          color: #38bdf8;
+          letter-spacing: 0.04em;
+        }
+
+        .sih-nav-sub {
+          font-size: 0.64rem;
+          color: var(--color-text-muted);
+          font-weight: 500;
+          margin-top: 1px;
+          letter-spacing: 0.02em;
+        }
+
+        .firebase-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 8px;
+          border-radius: var(--radius-full);
+          background: rgba(255, 153, 0, 0.12);
+          border: 1px solid rgba(255, 153, 0, 0.35);
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: #ff9900;
+          letter-spacing: 0.02em;
+        }
+
+        .firebase-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #ff9900;
+          box-shadow: 0 0 8px #ff9900;
+          animation: pulse-orange 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-orange {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.3); opacity: 0.6; }
         }
 
         @media (max-width: 480px) {

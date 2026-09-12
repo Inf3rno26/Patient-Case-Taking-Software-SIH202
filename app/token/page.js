@@ -36,25 +36,34 @@ const DEPT_ICONS = {
   "Neurology": <Brain size={18} />,
 };
 
-function generateQueue() {
-  const depts = [
-    { dept: "General Medicine", color: "#00d4aa", room: "OPD-1" },
-    { dept: "Cardiology", color: "#ff4757", room: "OPD-4" },
-    { dept: "Orthopedics", color: "#4db8ff", room: "OPD-7" },
-    { dept: "Ayurveda (AYUSH)", color: "#ff9933", room: "OPD-12" },
-    { dept: "Gynecology", color: "#ff6b81", room: "OPD-9" },
-    { dept: "Pediatrics", color: "#ffd93d", room: "OPD-6" },
-    { dept: "Neurology", color: "#a29bfe", room: "OPD-3" },
-  ];
+const BASE_DEPTS = [
+  { dept: "General Medicine", color: "#00d4aa", room: "OPD-1", doctor: "Dr. Rajesh Sharma, MD (AIIMS)", baseToken: 142, waiting: 18, avgWait: 12 },
+  { dept: "Cardiology", color: "#ff4757", room: "OPD-4", doctor: "Dr. A. K. Sen, DM (Cardio)", baseToken: 88, waiting: 9, avgWait: 16 },
+  { dept: "Orthopedics", color: "#4db8ff", room: "OPD-7", doctor: "Dr. Vikram Malhotra, MS (Ortho)", baseToken: 114, waiting: 14, avgWait: 15 },
+  { dept: "Ayurveda (AYUSH)", color: "#ff9933", room: "OPD-12", doctor: "Vaidya Harish Joshi, BAMS, MD (Ayu)", baseToken: 95, waiting: 11, avgWait: 14 },
+  { dept: "Gynecology", color: "#ff6b81", room: "OPD-9", doctor: "Dr. Sunita Mehra, MD, DGO", baseToken: 76, waiting: 8, avgWait: 18 },
+  { dept: "Pediatrics", color: "#ffd93d", room: "OPD-6", doctor: "Dr. Priya Nair, MD (Pediatrics)", baseToken: 103, waiting: 12, avgWait: 10 },
+  { dept: "Neurology", color: "#a29bfe", room: "OPD-3", doctor: "Dr. Amitabh Roy, DM (Neuro)", baseToken: 52, waiting: 6, avgWait: 22 },
+];
 
-  return depts.map((d) => ({
-    ...d,
-    now: `MK-${Math.floor(Math.random() * 300 + 100)}`,
-    next: [`MK-${Math.floor(Math.random() * 300 + 100)}`, `MK-${Math.floor(Math.random() * 300 + 100)}`],
-    waiting: Math.floor(Math.random() * 25 + 3),
-    avgWait: Math.floor(Math.random() * 15 + 8),
-    doctor: ["Dr. R. Sharma", "Dr. A. Mehta", "Dr. S. Patel", "Dr. K. Singh", "Dr. N. Joshi"][Math.floor(Math.random() * 5)],
-  }));
+function generateQueue(userSession = null) {
+  return BASE_DEPTS.map((d) => {
+    const isUserDept = userSession?.summary?.suggestedDepartment === d.dept || (d.dept === "General Medicine" && !userSession?.summary?.suggestedDepartment);
+    const userToken = userSession?.id;
+
+    const currentNum = d.baseToken;
+    const next1 = `MK-0${currentNum + 1}`;
+    const next2 = isUserDept && userToken ? userToken : `MK-0${currentNum + 2}`;
+
+    return {
+      ...d,
+      now: `MK-0${currentNum}`,
+      next: [next1, next2],
+      waiting: d.waiting,
+      avgWait: d.avgWait,
+      doctor: d.doctor,
+    };
+  });
 }
 
 export default function TokenQueuePage() {
@@ -67,30 +76,33 @@ export default function TokenQueuePage() {
   const [myToken, setMyToken] = useState(null);
 
   const ANNOUNCEMENTS = [
-    "Token MK-187 — Please proceed to OPD-1 (General Medicine)",
-    "Red Flag Alert: Token MK-203 redirected to Emergency Department",
-    "ABHA linking saves time — register at the MediKiosk terminal",
-    "Ayurveda (AYUSH) OPD now open — Token MK-251 onwards",
-    "Please carry all prescriptions and reports to your consultation",
-    "Token SMS alerts enabled — check your registered mobile number",
+    "Token MK-0142 — Please proceed to OPD-1 (General Medicine • Dr. Rajesh Sharma)",
+    "Token MK-0088 — Please proceed to OPD-4 (Cardiology • Dr. A. K. Sen)",
+    "Ayurveda (AYUSH) Token MK-0095 — Please proceed to OPD-12 (Vaidya Harish Joshi)",
+    "Orthopedics Token MK-0114 — Please proceed to OPD-7 (Dr. Vikram Malhotra)",
+    "Pediatrics Token MK-0103 — Please proceed to OPD-6 (Dr. Priya Nair)",
+    "Automated 2-Day Pre-Appointment Reminder SMS & Email active for all scheduled follow-ups",
+    "ABHA Health Record Linkage enabled — Scan QR at MediKiosk to bypass registration queue",
   ];
-
 
   useEffect(() => {
     setMounted(true);
-    // Try to load patient's token from session
+    let session = null;
     try {
-      const session = JSON.parse(localStorage.getItem("medikiosk_session") || "{}");
-      if (session?.id) setMyToken(session.id);
+      const raw = localStorage.getItem("medikiosk_session");
+      if (raw) {
+        session = JSON.parse(raw);
+        if (session?.id) setMyToken(session.id);
+      }
     } catch { }
 
+    setQueue(generateQueue(session));
+
     const timeTimer = setInterval(() => setCurrentTime(new Date()), 1000);
-    const queueTimer = setInterval(() => setQueue(generateQueue()), 12000);
     const tickerTimer = setInterval(() => setTickerIndex(i => (i + 1) % ANNOUNCEMENTS.length), 5000);
 
     return () => {
       clearInterval(timeTimer);
-      clearInterval(queueTimer);
       clearInterval(tickerTimer);
     };
   }, []);
@@ -110,8 +122,8 @@ export default function TokenQueuePage() {
           <div className="hospital-brand">
             <div className="brand-icon"><Building2 size={20} /></div>
             <div>
-              <div className="brand-name">MediKiosk OPD Queue</div>
-              <div className="brand-sub">Live Token Display System</div>
+              <div className="brand-name">AIIMS New Delhi — Central OPD Complex</div>
+              <div className="brand-sub">ABDM Facility #DL-ND-AIIMS-001 • Live Token Display System</div>
             </div>
           </div>
         </div>
